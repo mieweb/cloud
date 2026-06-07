@@ -10,7 +10,8 @@
     "node": ">=22.16.0"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm -r --if-present test"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240620.0",

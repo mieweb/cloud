@@ -9,6 +9,9 @@
     "./host": "./src/host.mjs",
     "./migrate": "./src/migrate.mjs"
   },
+  "scripts": {
+    "test": "node --test"
+  },
   "dependencies": {
     "@hono/node-server": "^1.13.0"
   },

@@ -29,11 +29,37 @@
               "properties": {
                 "driver": {
                   "type": "string",
-                  "enum": ["sqlite", "fs", "memory", "redis", "inproc", "unsupported"]
+                  "enum": [
+                    "sqlite",
+                    "sqlite-vec",
+                    "fs",
+                    "memory",
+                    "redis",
+                    "inproc",
+                    "ai",
+                    "unsupported"
+                  ]
                 },
                 "path": { "type": "string" },
                 "url": { "type": "string" },
-                "queue": { "type": "string" }
+                "queue": { "type": "string" },
+                "dim": {
+                  "type": "number",
+                  "description": "Vector dimension for the sqlite-vec driver (default 768)."
+                },
+                "backend": {
+                  "type": "string",
+                  "description": "AI backend for the ai driver (e.g. 'ollama')."
+                },
+                "host": {
+                  "type": "string",
+                  "description": "Base URL for service-backed drivers (e.g. the ai driver's Ollama host)."
+                },
+                "models": {
+                  "type": "object",
+                  "description": "Model names for the ai driver, e.g. { \"embed\": \"nomic-embed-text\" }.",
+                  "additionalProperties": { "type": "string" }
+                }
               },
               "required": ["driver"],
               "additionalProperties": true
