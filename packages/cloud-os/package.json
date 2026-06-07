@@ -1,0 +1,27 @@
+{
+  "name": "@mieweb/cloud-os",
+  "version": "0.0.0",
+  "private": true,
+  "description": "os.mieweb.org (self-hosted) adapters implementing the Cloudflare-shaped @mieweb/cloud contracts over durable, networked infrastructure: D1→libSQL/sqld, Vectorize→libSQL native vectors, R2→S3/MinIO, KV+Queues→Valkey/Redis. Durable Objects stay single-node best-effort. Registers via @mieweb/cloud-local's driver registry; reuses the Node host harness.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down -v"
+  },
+  "dependencies": {
+    "@mieweb/cloud-local": "workspace:*"
+  },
+  "optionalDependencies": {
+    "@libsql/client": "^0.14.0",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "ioredis": "^5.4.1"
+  },
+  "files": [
+    "src",
+    "docker-compose.yml"
+  ]
+}

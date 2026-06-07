@@ -3,6 +3,7 @@ import { getDriver, registerDriver, driverNames } from './registry.mjs';
 
 export { createSqliteD1 } from './adapters/d1-sqlite.mjs';
 export { createSqliteVecIndex } from './adapters/vectorize-sqlitevec.mjs';
+export { matchesFilter, applyOp } from './adapters/meta-filter.mjs';
 export { createFsBucket } from './adapters/r2-fs.mjs';
 export { createMemoryKV } from './adapters/kv-memory.mjs';
 export { createInprocQueue } from './adapters/queue-inproc.mjs';

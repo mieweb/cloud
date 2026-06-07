@@ -1,5 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { matchesFilter } from './meta-filter.mjs';
 
 /**
  * Vectorize → local SQLite adapter (backed by better-sqlite3 + sqlite-vec).
@@ -162,55 +163,6 @@ export async function createSqliteVecIndex(filePath, opts = {}) {
     /** Escape hatch for tooling/tests. */
     _raw: db,
   };
-}
-
-/**
- * Apply a Vectorize-style metadata filter to one record's metadata.
- * Supports implicit equality and `$eq/$ne/$in/$nin/$lt/$lte/$gt/$gte`.
- * @param {Record<string, any>} metadata
- * @param {Record<string, any>} filter
- */
-function matchesFilter(metadata, filter) {
-  for (const [field, cond] of Object.entries(filter)) {
-    const value = metadata[field];
-    if (cond !== null && typeof cond === 'object' && !Array.isArray(cond)) {
-      for (const [op, operand] of Object.entries(cond)) {
-        if (!applyOp(op, value, operand)) return false;
-      }
-    } else if (value !== cond) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * @param {string} op
- * @param {any} value
- * @param {any} operand
- */
-function applyOp(op, value, operand) {
-  switch (op) {
-    case '$eq':
-      return value === operand;
-    case '$ne':
-      return value !== operand;
-    case '$in':
-      return Array.isArray(operand) && operand.includes(value);
-    case '$nin':
-      return Array.isArray(operand) && !operand.includes(value);
-    case '$lt':
-      return value < operand;
-    case '$lte':
-      return value <= operand;
-    case '$gt':
-      return value > operand;
-    case '$gte':
-      return value >= operand;
-    default:
-      // Unknown operator → don't match (fail closed).
-      return false;
-  }
 }
 
 function randomId() {

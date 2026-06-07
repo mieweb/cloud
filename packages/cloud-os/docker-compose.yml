@@ -1,0 +1,48 @@
+# Local stand-in for the os.mieweb.org infrastructure the `mieweb` target
+# adapters expect. Brought up by `pnpm --filter @mieweb/cloud-os infra:up`
+# and exercised by the live conformance suite (test/conformance.os.test.mjs).
+#
+# These are dev defaults only — no auth on libSQL, well-known MinIO creds.
+# Never point production at this file.
+
+services:
+  # D1 + Vectorize → libSQL server (SQLite-compatible: keeps FTS5 + native
+  # vector functions). HTTP protocol on 8080 for @libsql/client.
+  libsql:
+    image: ghcr.io/tursodatabase/libsql-server:latest
+    environment:
+      SQLD_NODE: primary
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # R2 → S3-compatible object storage.
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # KV + Queues → Valkey (Redis-wire-compatible fork).
+  valkey:
+    image: valkey/valkey:latest
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20

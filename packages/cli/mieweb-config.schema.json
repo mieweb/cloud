@@ -37,6 +37,11 @@
                     "redis",
                     "inproc",
                     "ai",
+                    "libsql",
+                    "libsql-vec",
+                    "s3",
+                    "valkey",
+                    "valkey-queue",
                     "unsupported"
                   ]
                 },
@@ -45,7 +50,7 @@
                 "queue": { "type": "string" },
                 "dim": {
                   "type": "number",
-                  "description": "Vector dimension for the sqlite-vec driver (default 768)."
+                  "description": "Vector dimension for the sqlite-vec / libsql-vec drivers (default 768)."
                 },
                 "backend": {
                   "type": "string",
@@ -53,7 +58,47 @@
                 },
                 "host": {
                   "type": "string",
-                  "description": "Base URL for service-backed drivers (e.g. the ai driver's Ollama host)."
+                  "description": "Hostname/base URL for service-backed drivers (ai's Ollama host, valkey host)."
+                },
+                "port": {
+                  "type": "number",
+                  "description": "Port for service-backed drivers (e.g. valkey/valkey-queue)."
+                },
+                "namespace": {
+                  "type": "string",
+                  "description": "Key namespace for the valkey / valkey-queue drivers."
+                },
+                "authToken": {
+                  "type": "string",
+                  "description": "Auth token for the libsql / libsql-vec drivers."
+                },
+                "table": {
+                  "type": "string",
+                  "description": "Table name for the libsql-vec driver (default vec_items)."
+                },
+                "endpoint": {
+                  "type": "string",
+                  "description": "S3 endpoint URL for the s3 driver (e.g. MinIO)."
+                },
+                "region": {
+                  "type": "string",
+                  "description": "S3 region for the s3 driver (default us-east-1)."
+                },
+                "bucket": {
+                  "type": "string",
+                  "description": "Bucket name for the s3 driver."
+                },
+                "accessKeyId": {
+                  "type": "string",
+                  "description": "S3 access key id for the s3 driver."
+                },
+                "secretAccessKey": {
+                  "type": "string",
+                  "description": "S3 secret access key for the s3 driver."
+                },
+                "forcePathStyle": {
+                  "type": "boolean",
+                  "description": "Use path-style S3 addressing (required by MinIO)."
                 },
                 "models": {
                   "type": "object",

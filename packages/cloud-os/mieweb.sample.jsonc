@@ -1,0 +1,73 @@
+{
+  // Sample `mieweb` (os.mieweb.org) target block for the @mieweb/cloud-os
+  // adapters. Copy the `targets.mieweb` block into a consuming app's
+  // mieweb.jsonc (alongside its `targets.local`) and set `target` to "mieweb"
+  // — or select it at runtime with `mieweb --target mieweb <cmd>`.
+  //
+  // wrangler.jsonc stays the source of truth for which bindings exist; this
+  // block only says which driver/infrastructure backs each one off Cloudflare.
+  // The values below match the dev docker-compose.yml in this package.
+  "$schema": "../cli/mieweb-config.schema.json",
+  "target": "mieweb",
+  "targets": {
+    "mieweb": {
+      "runtime": "node",
+      "port": 8787,
+      "bindings": {
+        // D1 → libSQL/sqld (SQLite-compatible: keeps FTS5). Migrations apply
+        // unchanged. Add `authToken` for a secured server.
+        "DB": { "driver": "libsql", "url": "http://localhost:8080" },
+
+        // R2 → S3-compatible object storage (MinIO here; AWS S3 in prod).
+        "RECORDINGS": {
+          "driver": "s3",
+          "endpoint": "http://localhost:9000",
+          "bucket": "bluehive-recordings",
+          "accessKeyId": "minioadmin",
+          "secretAccessKey": "minioadmin",
+          "forcePathStyle": true
+        },
+        "DESKTOP": {
+          "driver": "s3",
+          "endpoint": "http://localhost:9000",
+          "bucket": "bluehive-desktop",
+          "accessKeyId": "minioadmin",
+          "secretAccessKey": "minioadmin",
+          "forcePathStyle": true
+        },
+
+        // KV → Valkey/Redis.
+        "SESSIONS": { "driver": "valkey", "host": "127.0.0.1", "port": 6379, "namespace": "bluehive" },
+
+        // Queues → Valkey/Redis (durable list + delayed zset). `queue` is the
+        // wrangler queue name.
+        "SUMMARIZE_Q": { "driver": "valkey-queue", "queue": "summarize-calls", "host": "127.0.0.1", "port": 6379 },
+        "PHONE_LOOKUP_Q": { "driver": "valkey-queue", "queue": "phone-lookups", "host": "127.0.0.1", "port": 6379 },
+        "VOICEMAIL_SUMMARIZE_Q": { "driver": "valkey-queue", "queue": "voicemail-summaries", "host": "127.0.0.1", "port": 6379 },
+        "MEETING_SUMMARIZE_Q": { "driver": "valkey-queue", "queue": "summarize-meetings", "host": "127.0.0.1", "port": 6379 },
+        "SEARCH_EMBED_Q": { "driver": "valkey-queue", "queue": "search-embeddings", "host": "127.0.0.1", "port": 6379 },
+        "AGENT_EVENT_Q": { "driver": "valkey-queue", "queue": "agent-events", "host": "127.0.0.1", "port": 6379 },
+        "DOC_EMBED_Q": { "driver": "valkey-queue", "queue": "document-embeddings", "host": "127.0.0.1", "port": 6379 },
+
+        // Durable Objects → single-node in-process registry (best-effort;
+        // multi-node DO coordination is a future enhancement).
+        "SMS_CONVERSATION": { "driver": "inproc" },
+        "CALL_SESSION": { "driver": "inproc" },
+        "AGENT_CALL": { "driver": "inproc" },
+        "AGENT_PRESENCE": { "driver": "inproc" },
+        "MEETING_ROOM": { "driver": "inproc" },
+
+        // Vectorize → libSQL native vectors (same server as DB).
+        "SEARCH_INDEX": { "driver": "libsql-vec", "url": "http://localhost:8080", "dim": 768 },
+
+        // Workers AI → local/hosted Ollama (reused from @mieweb/cloud-local).
+        "AI": {
+          "driver": "ai",
+          "backend": "ollama",
+          "host": "http://localhost:11434",
+          "models": { "embed": "nomic-embed-text" }
+        }
+      }
+    }
+  }
+}
