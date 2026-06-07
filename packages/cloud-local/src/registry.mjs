@@ -5,6 +5,7 @@ import { createFsBucket } from './adapters/r2-fs.mjs';
 import { createMemoryKV } from './adapters/kv-memory.mjs';
 import { createInprocQueue } from './adapters/queue-inproc.mjs';
 import { createInprocNamespace } from './adapters/durable-inproc.mjs';
+import { createAiBackend } from './adapters/ai-multi.mjs';
 import { createUnsupportedBinding } from './adapters/unsupported.mjs';
 
 /**
@@ -90,6 +91,14 @@ registerDriver('inproc', ({ name, cfg, getQueueConsumer, getEnv, doClasses }) =>
     getEnv,
   );
 });
+
+registerDriver('ai', ({ cfg }) =>
+  createAiBackend({
+    backend: cfg.backend,
+    host: cfg.host,
+    models: cfg.models,
+  }),
+);
 
 registerDriver('unsupported', ({ name, target }) => createUnsupportedBinding(name, target));
 

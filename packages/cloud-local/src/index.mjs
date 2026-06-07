@@ -7,6 +7,7 @@ export { createFsBucket } from './adapters/r2-fs.mjs';
 export { createMemoryKV } from './adapters/kv-memory.mjs';
 export { createInprocQueue } from './adapters/queue-inproc.mjs';
 export { createInprocNamespace } from './adapters/durable-inproc.mjs';
+export { createAiBackend } from './adapters/ai-multi.mjs';
 export { createUnsupportedBinding } from './adapters/unsupported.mjs';
 export { registerDriver, getDriver, driverNames } from './registry.mjs';
 export { applyMigrations } from './migrate.mjs';
