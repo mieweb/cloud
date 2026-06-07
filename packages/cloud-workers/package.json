@@ -1,0 +1,17 @@
+{
+  "name": "@mieweb/cloud-workers",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Portable `cloudflare:workers` shim. Backs the `mieweb:workers` virtual module: re-exports the native runtime on Cloudflare (workerd) and provides a pure-JS DurableObject base everywhere else.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "workerd": "./src/cloudflare.ts",
+      "default": "./src/node.ts"
+    }
+  },
+  "files": [
+    "src"
+  ]
+}

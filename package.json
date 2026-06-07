@@ -1,0 +1,19 @@
+{
+  "name": "mieweb-cloud",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The @mieweb/cloud portability layer: a thin, stable contract over platform primitives (database, object storage, key/value, queues, stateful objects, vector index, AI). Cloudflare is the reference implementation; other runtimes implement the same contract.",
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240620.0",
+    "typescript": "^5.6.0"
+  }
+}

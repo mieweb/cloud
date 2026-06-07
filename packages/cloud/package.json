@@ -1,0 +1,20 @@
+{
+  "name": "@mieweb/cloud",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Umbrella entry for the @mieweb portability layer. Re-exports the portable platform-service contracts and the runtime-environment factory. Cloudflare remains the reference implementation; other targets implement the same contracts.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@mieweb/cloud-types": "workspace:*",
+    "@mieweb/cloud-workers": "workspace:*"
+  },
+  "files": [
+    "src"
+  ]
+}

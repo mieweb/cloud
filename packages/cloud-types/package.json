@@ -1,0 +1,16 @@
+{
+  "name": "@mieweb/cloud-types",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Portable platform-service contracts (database, object storage, key/value, queues, stateful objects, vector index, AI). On Cloudflare these are exact aliases of the native binding types, so existing code keeps compiling unchanged; other adapters implement the same contracts.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src"
+  ]
+}

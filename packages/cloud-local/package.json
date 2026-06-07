@@ -1,0 +1,26 @@
+{
+  "name": "@mieweb/cloud-local",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local/Node adapters implementing the Cloudflare-shaped @mieweb/cloud contracts: D1→SQLite (better-sqlite3), R2→filesystem, KV→in-memory/Redis, Queues→in-process, Durable Objects→in-process registry. Vectorize/Workers AI surface explicit UnsupportedBindingError. Includes a Node host harness that runs the unchanged worker handler.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./host": "./src/host.mjs",
+    "./migrate": "./src/migrate.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.0.0"
+  },
+  "peerDependenciesMeta": {
+    "better-sqlite3": {
+      "optional": true
+    }
+  },
+  "files": [
+    "src"
+  ]
+}

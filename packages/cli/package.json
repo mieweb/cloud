@@ -1,0 +1,17 @@
+{
+  "name": "@mieweb/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "`mieweb` CLI — a thin, target-aware wrapper over wrangler. On the cloudflare target it delegates verbatim to the real wrangler binary; on other targets it drives the matching @mieweb adapter (e.g. the local Node host harness).",
+  "type": "module",
+  "bin": {
+    "mieweb": "./src/index.mjs"
+  },
+  "dependencies": {
+    "@mieweb/cloud-local": "workspace:*"
+  },
+  "files": [
+    "src",
+    "mieweb-config.schema.json"
+  ]
+}
