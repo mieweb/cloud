@@ -1,10 +1,5 @@
 import { resolve } from 'node:path';
-import { createSqliteD1 } from './adapters/d1-sqlite.mjs';
-import { createFsBucket } from './adapters/r2-fs.mjs';
-import { createMemoryKV } from './adapters/kv-memory.mjs';
-import { createInprocQueue } from './adapters/queue-inproc.mjs';
-import { createInprocNamespace } from './adapters/durable-inproc.mjs';
-import { createUnsupportedBinding } from './adapters/unsupported.mjs';
+import { getDriver, registerDriver, driverNames } from './registry.mjs';
 
 export { createSqliteD1 } from './adapters/d1-sqlite.mjs';
 export { createFsBucket } from './adapters/r2-fs.mjs';
@@ -12,6 +7,7 @@ export { createMemoryKV } from './adapters/kv-memory.mjs';
 export { createInprocQueue } from './adapters/queue-inproc.mjs';
 export { createInprocNamespace } from './adapters/durable-inproc.mjs';
 export { createUnsupportedBinding } from './adapters/unsupported.mjs';
+export { registerDriver, getDriver, driverNames } from './registry.mjs';
 export { applyMigrations } from './migrate.mjs';
 
 /**
@@ -41,6 +37,7 @@ export { applyMigrations } from './migrate.mjs';
  * @param {Record<string, unknown>} [args.vars]  wrangler `vars` to copy in
  * @param {() => QueueConsumer|undefined} [args.getQueueConsumer]
  * @param {Record<string, new (state: any, env: any) => any>} [args.doClasses]
+ * @param {Record<string, any>} [args.services]  host-provided service handles (KV/Queue servers, …)
  * @returns {{ env: Record<string, any> }}
  */
 export function createCloudEnv(args) {
@@ -51,6 +48,7 @@ export function createCloudEnv(args) {
     vars = {},
     getQueueConsumer = () => undefined,
     doClasses = {},
+    services = {},
   } = args;
   const bindings = targetConfig.bindings ?? {};
 
@@ -67,47 +65,26 @@ export function createCloudEnv(args) {
   const getEnv = () => env;
 
   for (const [name, cfg] of Object.entries(bindings)) {
-    const driver = /** @type {{ driver: string, path?: string, queue?: string }} */ (cfg).driver;
-    switch (driver) {
-      case 'sqlite': {
-        // D1 is async to construct; we attach a promise the host awaits.
-        env[name] = createSqliteD1(resolve(root, cfg.path));
-        break;
-      }
-      case 'fs': {
-        env[name] = createFsBucket(resolve(root, cfg.path));
-        break;
-      }
-      case 'memory': {
-        env[name] = createMemoryKV();
-        break;
-      }
-      case 'inproc': {
-        if (cfg.queue) {
-          env[name] = createInprocQueue(cfg.queue, getQueueConsumer, getEnv);
-        } else {
-          // Durable Object namespace; class wired via doClasses[binding].
-          env[name] = createInprocNamespace(
-            name,
-            () => {
-              const Klass = doClasses[name];
-              if (!Klass) {
-                throw new Error(`[mieweb] no DO class registered for binding "${name}"`);
-              }
-              return Klass;
-            },
-            getEnv,
-          );
-        }
-        break;
-      }
-      case 'unsupported': {
-        env[name] = createUnsupportedBinding(name, target);
-        break;
-      }
-      default:
-        console.warn(`[mieweb] unknown driver "${driver}" for binding "${name}" — skipping`);
+    const driverName = /** @type {{ driver: string }} */ (cfg).driver;
+    const factory = getDriver(driverName);
+    if (!factory) {
+      console.warn(
+        `[mieweb] unknown driver "${driverName}" for binding "${name}" — skipping. ` +
+          `Known drivers: ${driverNames().join(', ')}`,
+      );
+      continue;
     }
+    env[name] = factory({
+      name,
+      cfg,
+      root,
+      target,
+      resolvePath: (/** @type {string} */ p) => resolve(root, p),
+      getEnv,
+      getQueueConsumer,
+      doClasses,
+      services,
+    });
   }
 
   return { env };
