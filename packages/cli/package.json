@@ -8,7 +8,8 @@
     "mieweb": "./src/index.mjs"
   },
   "dependencies": {
-    "@mieweb/cloud-local": "workspace:*"
+    "@mieweb/cloud-local": "workspace:*",
+    "@mieweb/cloud-os": "workspace:*"
   },
   "files": [
     "src",

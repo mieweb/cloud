@@ -18,7 +18,7 @@
  */
 import { loadConfig } from './config.mjs';
 import { delegateToWrangler } from './cloudflare.mjs';
-import { runLocal } from './local.mjs';
+import { runHostTarget } from './local.mjs';
 
 /** @param {string[]} argv */
 async function main(argv) {
@@ -53,13 +53,16 @@ async function main(argv) {
     return delegateToWrangler(args, { cwd: config.root });
   }
 
-  if (config.target === 'local') {
-    return runLocal(args, config);
+  // Node "host" targets run the unchanged worker via the host harness. `local`
+  // uses the in-process adapters; `mieweb` (os.mieweb.org) uses the networked
+  // ones (libSQL/S3/Valkey), registered when local.mjs imports @mieweb/cloud-os.
+  if (config.target === 'local' || config.target === 'mieweb') {
+    return runHostTarget(args, config);
   }
 
   console.error(
     `mieweb: target "${config.target}" has no adapter yet. ` +
-      `Supported today: cloudflare (delegates to wrangler), local (Node host harness).`,
+      `Supported today: cloudflare (delegates to wrangler), local + mieweb (Node host harness).`,
   );
   return 1;
 }
@@ -70,11 +73,12 @@ function printHelp() {
       'mieweb — target-aware wrapper over wrangler',
       '',
       'Usage:',
-      '  mieweb [--target <cloudflare|local>] <command> [...args]',
+      '  mieweb [--target <cloudflare|local|mieweb>] <command> [...args]',
       '',
       'Targets:',
       '  cloudflare (default)  Forward the command verbatim to wrangler.',
       '  local                 Run against the local Node host harness / adapters.',
+      '  mieweb                Run against os.mieweb.org adapters (libSQL/S3/Valkey).',
       '',
       'Common commands:',
       '  mieweb dev                          Start a dev server for the active target.',
@@ -84,6 +88,7 @@ function printHelp() {
       '',
       'Selecting a target:',
       '  mieweb --target local dev           Flag form.',
+      '  mieweb --target mieweb dev          Run the os.mieweb.org adapters.',
       '  MIEWEB_TARGET=local mieweb dev      Env form.',
       '  (or set "target" in mieweb.jsonc)',
       '',
