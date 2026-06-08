@@ -13,6 +13,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import net from 'node:net';
 import { randomUUID } from 'node:crypto';
 
 import {
@@ -30,24 +31,37 @@ const S3_CREDS = { accessKeyId: 'minioadmin', secretAccessKey: 'minioadmin' };
 
 async function reachable(url) {
   try {
-    await fetch(url, { signal: AbortSignal.timeout(1000) });
-    return true;
+    // Require a 2xx health response: any HTTP server can answer the port, but
+    // only the real service returns ok for its health endpoint. A loose check
+    // produces false positives (e.g. a stray dev server on :8080) that then
+    // make the live tests fail instead of skip.
+    const res = await fetch(url, { signal: AbortSignal.timeout(1000) });
+    return res.ok;
   } catch {
     return false;
   }
 }
 
+// Fail-fast TCP probe. The production Valkey client uses `maxRetriesPerRequest:
+// null`, so a `ping()` against a down server would queue and wait forever — we
+// must not use it for reachability or `pnpm -r test` hangs without infra.
+function tcpReachable({ host, port }, timeoutMs = 1000) {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host, port });
+    const done = (ok) => {
+      socket.destroy();
+      resolve(ok);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.once('connect', () => done(true));
+    socket.once('timeout', () => done(false));
+    socket.once('error', () => done(false));
+  });
+}
+
 const haveLibsql = await reachable(`${LIBSQL_URL}/health`);
 const haveS3 = await reachable(`${S3_ENDPOINT}/minio/health/live`);
-let haveValkey = false;
-try {
-  const probe = await createValkeyKV({ ...VALKEY, namespace: `probe:${randomUUID()}` });
-  await probe._raw.ping();
-  await probe._close();
-  haveValkey = true;
-} catch {
-  haveValkey = false;
-}
+const haveValkey = await tcpReachable(VALKEY);
 
 // --- D1 over libSQL ------------------------------------------------------
 test('D1 (libsql): prepare/bind/first/all/run/batch + FTS5', async (t) => {

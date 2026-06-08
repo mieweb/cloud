@@ -20,7 +20,12 @@ export function createUnsupportedBinding(bindingName, target) {
   return new Proxy(
     {},
     {
-      get() {
+      get(_target, prop) {
+        // Must not look like a thenable: `settleEnv` (and any Promise.resolve)
+        // duck-types `.then`, and returning `fail` here would throw at env-build
+        // time instead of at the call site. Stay inert until actually used.
+        if (prop === 'then' || prop === 'catch' || prop === 'finally') return undefined;
+        if (typeof prop === 'symbol') return undefined;
         return fail;
       },
       apply() {
