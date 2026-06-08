@@ -1,0 +1,31 @@
+{
+  // Offline `wrangler dev` config used by the test runner's `cf` target.
+  //
+  // It is wrangler.jsonc minus the two bindings that can't run in Miniflare
+  // without a Cloudflare account: `ai` (proxies to a remote model) and
+  // `vectorize` (no local simulation). Everything else — D1, KV, R2, Queues,
+  // Durable Objects — is simulated locally, so the core surfaces run with no
+  // credentials. The worker reports vector + ai as skipped (SKIP_SURFACES),
+  // exactly as on a real Cloudflare local dev session.
+  //
+  // The canonical, full Cloudflare config remains wrangler.jsonc.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mieweb-test-app",
+  "main": "worker/index.mjs",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "d1_databases": [
+    { "binding": "DB", "database_name": "mieweb-test-app", "database_id": "local-test-app" }
+  ],
+  "kv_namespaces": [{ "binding": "CACHE", "id": "local-test-cache" }],
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "mieweb-test-app" }],
+  "queues": {
+    "producers": [{ "binding": "JOBS", "queue": "mieweb-test-jobs" }],
+    "consumers": [{ "queue": "mieweb-test-jobs", "max_batch_size": 10 }]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "Counter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }]
+}

@@ -1,0 +1,27 @@
+{
+  // Cloudflare is the reference implementation. This is an ordinary worker
+  // config; `mieweb --target cloudflare …` forwards verbatim to wrangler, and
+  // `wrangler dev` runs the same worker the other targets run via the host
+  // harness. The off-Cloudflare driver hints live in the mieweb.jsonc sidecar.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mieweb-test-app",
+  "main": "worker/index.mjs",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "d1_databases": [
+    { "binding": "DB", "database_name": "mieweb-test-app", "database_id": "local-test-app" }
+  ],
+  "kv_namespaces": [{ "binding": "CACHE", "id": "local-test-cache" }],
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "mieweb-test-app" }],
+  "queues": {
+    "producers": [{ "binding": "JOBS", "queue": "mieweb-test-jobs" }],
+    "consumers": [{ "queue": "mieweb-test-jobs", "max_batch_size": 10 }]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "Counter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }],
+  "vectorize": [{ "binding": "VECTORS", "index_name": "mieweb-test-vectors" }],
+  "ai": { "binding": "AI" }
+}

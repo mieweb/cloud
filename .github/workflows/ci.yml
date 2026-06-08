@@ -1,0 +1,47 @@
+# CI for @mieweb/cloud. Thin wrapper around scripts you can run locally:
+#   pnpm install && pnpm typecheck && pnpm -r test          # unit + local target
+#   node packages/test-app/harness/run.mjs --target all     # cf / local / docker
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Typecheck + unit conformance + the local target surface test. No services.
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm -r test
+
+  # Cross-target conformance against real infrastructure. The runner brings up
+  # the docker compose stack (libSQL + MinIO + Valkey) itself and tears it down.
+  # `--target all` also runs `local`, and auto-skips `cf` (no wrangler here).
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run contract surfaces on local + docker (cf auto-skips)
+        run: node packages/test-app/harness/run.mjs --target all

@@ -20,7 +20,9 @@ AI. The organizing principle:
 | [`@mieweb/cloud-workers`](packages/cloud-workers) | The `DurableObject` base. Backs the **`mieweb:workers`** virtual import: re-exports `cloudflare:workers` on Cloudflare (workerd export condition), pure-JS base everywhere else. |
 | [`@mieweb/cloud`](packages/cloud) | Umbrella entry — re-exports the contracts + `DurableObject` from one stable import surface. |
 | [`@mieweb/cloud-local`](packages/cloud-local) | Local/Node **adapters**: D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process registry. Vectorize/Workers AI surface explicit `UnsupportedBindingError`. Includes a Node host harness + migration runner. |
-| [`@mieweb/cli`](packages/cli) | The **`mieweb`** CLI. On the `cloudflare` target it delegates verbatim to `wrangler`; on other targets it drives the matching adapter. |
+| [`@mieweb/cloud-os`](packages/cloud-os) | The **`mieweb`** (os.mieweb.org / self-hosted) **adapters**: D1→libSQL, Vectorize→libSQL native vectors, R2→S3/MinIO, KV+Queues→Valkey. Durable Objects stay single-node. Ships a `docker-compose.yml` for the backing services. |
+| [`@mieweb/cli`](packages/cli) | The **`mieweb`** CLI. On the `cloudflare` target it delegates verbatim to `wrangler`; on the `local`/`mieweb` targets it runs the matching adapter via the Node host harness. |
+| [`@mieweb/test-app`](packages/test-app) | A tiny worker that exercises **every** contract surface over plain HTTP, plus a cross-target runner. The same worker + the same assertions prove the layer on `cloudflare`, `local`, and `mieweb`. See [Try it](#try-it-the-test-app). |
 
 ## How a consuming app wires it in
 
@@ -34,11 +36,63 @@ AI. The organizing principle:
 - The `mieweb` CLI reads both and either shells out to `wrangler` (Cloudflare)
   or runs the local adapters.
 
+## Using the `mieweb` CLI
+
+The CLI is a target-aware wrapper over `wrangler`. The active target comes from
+`--target <t>`, `MIEWEB_TARGET`, or the `target` field in `mieweb.jsonc`
+(default `cloudflare`).
+
+```sh
+# cloudflare (default): every command is forwarded verbatim to wrangler
+mieweb dev
+mieweb deploy
+mieweb d1 migrations apply <db>
+
+# local: run the unchanged worker on the Node host harness (SQLite/fs/memory/in-proc)
+mieweb --target local d1 migrations apply <db>
+mieweb --target local dev
+
+# mieweb (os.mieweb.org): run it on libSQL + S3/MinIO + Valkey
+mieweb --target mieweb dev
+```
+
+On `cloudflare`, behavior is identical to `wrangler` (zero overhead). On the
+`local`/`mieweb` targets the CLI imports the worker your `wrangler.jsonc` `main`
+points at, builds an `Env` from the `mieweb.jsonc` driver hints, and serves
+`fetch`/`queue`/`scheduled` over HTTP — the same handler Cloudflare runs.
+
+## Try it: the test app
+
+[`packages/test-app`](packages/test-app) is a worker whose routes each touch
+exactly one binding — D1, R2, KV, Queues, Durable Objects, Vectorize, AI — so a
+single set of HTTP assertions reads like a contract checklist. The cross-target
+runner boots that worker on each target and runs the **same** checks:
+
+```sh
+pnpm install
+
+# one target at a time
+pnpm --filter @mieweb/test-app check:local    # in-process Node adapters
+pnpm --filter @mieweb/test-app check:docker   # mieweb/os: spins up libSQL+MinIO+Valkey
+pnpm --filter @mieweb/test-app check:cf        # Cloudflare via `wrangler dev` (Miniflare)
+
+# everything available (docker auto-skips without Docker, cf without wrangler)
+pnpm --filter @mieweb/test-app check:all
+```
+
+Surfaces a target can't provide answer `501 { skipped: true }` instead of
+failing (e.g. Workers AI needs a model backend; Cloudflare local dev can't reach
+Vectorize/AI without credentials), so one suite stays green everywhere. The
+`local` target also runs as a plain `node --test` under `pnpm -r test`.
+
 ## Status
 
 Proof-of-concept. Consumed today as a git submodule; npm / Deno / Bun
-distribution is planned. Cloudflare is fully supported; the local Node target
-covers D1, R2, KV, Queues, and Durable Objects.
+distribution is planned. Cloudflare is fully supported; the `local` Node target
+and the `mieweb` (os.mieweb.org) target both cover D1, R2, KV, Queues, Durable
+Objects, and Vectorize, with Workers AI available when a model backend is
+configured. Every target is exercised by the [test app](#try-it-the-test-app)
+and in [CI](.github/workflows/ci.yml).
 
 ## License
 

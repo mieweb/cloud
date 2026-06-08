@@ -1,0 +1,5 @@
+# Local adapter scratch state (SQLite DB, R2 files, vector index).
+.data/
+
+# Wrangler / Miniflare local state created by `wrangler dev` (the cf target).
+.wrangler/

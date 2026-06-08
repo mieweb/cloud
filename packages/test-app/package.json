@@ -1,0 +1,24 @@
+{
+  "name": "@mieweb/test-app",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A tiny worker that exercises every @mieweb/cloud contract surface (D1, R2, KV, Queues, Durable Objects, Vectorize, AI) over plain HTTP, so the SAME assertions can prove the layer works on every target: cloudflare (wrangler/Miniflare), local (Node host harness), and mieweb/os (libSQL + S3 + Valkey via docker compose).",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node harness/run.mjs --target local",
+    "check:local": "node harness/run.mjs --target local",
+    "check:docker": "node harness/run.mjs --target docker",
+    "check:cf": "node harness/run.mjs --target cf",
+    "check:all": "node harness/run.mjs --target all"
+  },
+  "dependencies": {
+    "@mieweb/cli": "workspace:*",
+    "@mieweb/cloud-local": "workspace:*",
+    "@mieweb/cloud-os": "workspace:*"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.0.0",
+    "sqlite-vec": "^0.1.6"
+  }
+}

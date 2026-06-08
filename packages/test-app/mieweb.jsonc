@@ -1,0 +1,56 @@
+{
+  // Off-Cloudflare driver hints for the test app. wrangler.jsonc stays the
+  // source of truth for *which* bindings exist; this sidecar only says which
+  // adapter backs each one per target. Select a target with
+  // `mieweb --target <t> dev` (the test runner does this for you).
+  "$schema": "../cli/mieweb-config.schema.json",
+  "wrangler": "./wrangler.jsonc",
+  "target": "local",
+  "targets": {
+    // ---- local: in-process Node adapters, zero external services ----------
+    "local": {
+      "port": 8801,
+      "bindings": {
+        "DB": { "driver": "sqlite", "path": ".data/local/d1.sqlite" },
+        "BUCKET": { "driver": "fs", "path": ".data/local/r2" },
+        "CACHE": { "driver": "memory" },
+        "JOBS": { "driver": "inproc", "queue": "mieweb-test-jobs" },
+        "COUNTER": { "driver": "inproc" },
+        "VECTORS": { "driver": "sqlite-vec", "path": ".data/local/vectors.sqlite", "dim": 8 },
+        // No local model server in CI → surface UnsupportedBindingError, which
+        // the worker reports as a skipped surface.
+        "AI": { "driver": "unsupported" }
+      }
+    },
+
+    // ---- mieweb (os.mieweb.org): libSQL + S3/MinIO + Valkey ---------------
+    // Matches packages/cloud-os/docker-compose.yml. The test runner brings that
+    // stack up before selecting this target.
+    "mieweb": {
+      "port": 8802,
+      "bindings": {
+        "DB": { "driver": "libsql", "url": "http://localhost:8080" },
+        "BUCKET": {
+          "driver": "s3",
+          "endpoint": "http://localhost:9000",
+          "bucket": "mieweb-test-app",
+          "accessKeyId": "minioadmin",
+          "secretAccessKey": "minioadmin",
+          "forcePathStyle": true,
+          "createIfMissing": true
+        },
+        "CACHE": { "driver": "valkey", "host": "127.0.0.1", "port": 6379, "namespace": "test-app" },
+        "JOBS": {
+          "driver": "valkey-queue",
+          "queue": "mieweb-test-jobs",
+          "host": "127.0.0.1",
+          "port": 6379,
+          "namespace": "test-app"
+        },
+        "COUNTER": { "driver": "inproc" },
+        "VECTORS": { "driver": "libsql-vec", "url": "http://localhost:8080", "dim": 8, "table": "test_app_vectors" },
+        "AI": { "driver": "unsupported" }
+      }
+    }
+  }
+}
