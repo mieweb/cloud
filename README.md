@@ -2,15 +2,23 @@
 
 A thin, stable **portability layer** over the platform primitives an app uses —
 database, object storage, key/value, queues, stateful objects, vector index, and
-AI. The organizing principle:
+AI. It is **inspired by Cloudflare's clean serverless APIs** and aims for
+feature parity across runtimes — without promising a 1:1 match everywhere. The
+organizing principle:
 
 > **Cloudflare is the reference implementation and stays first-class and
-> zero-overhead.** The same application code can target other runtimes — local
-> Node today; `os.mieweb.org`, AWS, GCP later — through adapters that implement
-> the same Cloudflare-shaped contract.
+> zero-overhead.** The layer never gets in the way of targeting Cloudflare: on
+> that target your code runs against the native bindings, unchanged. The same
+> application code can then target other runtimes — local Node today;
+> `os.mieweb.org`, AWS, GCP later — through adapters that implement the same
+> Cloudflare-shaped contract as faithfully as each environment allows.
 >
-> Design bias: **compatibility over purity.** The first version makes an existing
-> Cloudflare codebase portable with the fewest possible source changes.
+> Design bias: **compatibility over purity, parity over perfection.** Adapters
+> chase Cloudflare's behavior closely, but where a runtime genuinely can't match
+> a primitive the difference is surfaced honestly (an explicit
+> `UnsupportedBindingError` or a documented gap) rather than faked. The first
+> version makes an existing Cloudflare codebase portable with the fewest
+> possible source changes.
 
 ## Packages
 
@@ -38,9 +46,14 @@ AI. The organizing principle:
 
 ## Using the `mieweb` CLI
 
-The CLI is a target-aware wrapper over `wrangler`. The active target comes from
-`--target <t>`, `MIEWEB_TARGET`, or the `target` field in `mieweb.jsonc`
-(default `cloudflare`).
+What the CLI *is* depends on where you point it. **If you're targeting
+Cloudflare (or already know `wrangler`), think of it as a thin pass-through:**
+every command is forwarded verbatim to `wrangler`, so there's nothing new to
+learn and zero overhead. **On the other targets it is not a wrapper** — there is
+no `wrangler` underneath; the CLI runs your unchanged worker on a Node host
+harness backed by the adapters, reusing your `wrangler.jsonc` purely as
+configuration. The active target comes from `--target <t>`, `MIEWEB_TARGET`, or
+the `target` field in `mieweb.jsonc` (default `cloudflare`).
 
 ```sh
 # cloudflare (default): every command is forwarded verbatim to wrangler
