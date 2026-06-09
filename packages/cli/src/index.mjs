@@ -16,9 +16,23 @@
  * This file is plain ESM JavaScript on purpose so `mieweb` runs with bare
  * `node` — no build step, no transpiler, no extra runtime dependency.
  */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { loadConfig } from './config.mjs';
 import { delegateToWrangler } from './cloudflare.mjs';
 import { runHostTarget } from './local.mjs';
+import { runInit } from './init.mjs';
+
+/** Read this CLI's version from its package.json. */
+function miewebVersion() {
+  try {
+    const pkgUrl = new URL('../package.json', import.meta.url);
+    const pkg = JSON.parse(readFileSync(fileURLToPath(pkgUrl), 'utf8'));
+    return pkg.version ?? '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
 
 /** @param {string[]} argv */
 async function main(argv) {
@@ -44,6 +58,18 @@ async function main(argv) {
   if (args[0] === 'help' || args.length === 0 || args[0] === '--help' || args[0] === '-h') {
     printHelp();
     return 0;
+  }
+
+  // Version flags: always show the mieweb version first. On cloudflare we then
+  // let wrangler print its own version below; other targets show mieweb only.
+  if (args[0] === '--version' || args[0] === '-v' || args[0] === '-V') {
+    process.stdout.write(`mieweb ${miewebVersion()}\n`);
+  }
+
+  // `init` scaffolds a NEW project, so it runs before config resolution (there
+  // is no mieweb.jsonc to load yet) and is target-independent.
+  if (args[0] === 'init') {
+    return runInit(args.slice(1));
   }
 
   const config = loadConfig({ overrideTarget });
@@ -81,6 +107,7 @@ function printHelp() {
       '  mieweb                Run against os.mieweb.org adapters (libSQL/S3/Valkey).',
       '',
       'Common commands:',
+      '  mieweb init [dir]                   Scaffold a new mieweb project.',
       '  mieweb dev                          Start a dev server for the active target.',
       '  mieweb deploy                       Deploy (cloudflare only).',
       '  mieweb tail                         Stream logs (cloudflare only).',

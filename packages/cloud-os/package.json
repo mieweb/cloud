@@ -1,9 +1,20 @@
 {
   "name": "@mieweb/cloud-os",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "os.mieweb.org (self-hosted) adapters implementing the Cloudflare-shaped @mieweb/cloud contracts over durable, networked infrastructure: D1→libSQL/sqld, Vectorize→libSQL native vectors, R2→S3/MinIO, KV+Queues→Valkey/Redis. Durable Objects stay single-node best-effort. Registers via @mieweb/cloud-local's driver registry; reuses the Node host harness.",
   "type": "module",
+  "license": "MIT",
+  "author": "MIEWEB",
+  "homepage": "https://github.com/mieweb/cloud#readme",
+  "bugs": "https://github.com/mieweb/cloud/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mieweb/cloud.git",
+    "directory": "packages/cloud-os"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": "./src/index.mjs"
   },

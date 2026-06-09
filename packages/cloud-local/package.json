@@ -1,9 +1,20 @@
 {
   "name": "@mieweb/cloud-local",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "Local/Node adapters implementing the Cloudflare-shaped @mieweb/cloud contracts: D1→SQLite (better-sqlite3), R2→filesystem, KV→in-memory/Redis, Queues→in-process, Durable Objects→in-process registry. Vectorize/Workers AI surface explicit UnsupportedBindingError. Includes a Node host harness that runs the unchanged worker handler.",
   "type": "module",
+  "license": "MIT",
+  "author": "MIEWEB",
+  "homepage": "https://github.com/mieweb/cloud#readme",
+  "bugs": "https://github.com/mieweb/cloud/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mieweb/cloud.git",
+    "directory": "packages/cloud-local"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": "./src/index.mjs",
     "./host": "./src/host.mjs",

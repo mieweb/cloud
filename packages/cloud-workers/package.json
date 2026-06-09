@@ -1,14 +1,25 @@
 {
   "name": "@mieweb/cloud-workers",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "Portable `cloudflare:workers` shim. Backs the `mieweb:workers` virtual module: re-exports the native runtime on Cloudflare (workerd) and provides a pure-JS DurableObject base everywhere else.",
   "type": "module",
+  "license": "MIT",
+  "author": "MIEWEB",
+  "homepage": "https://github.com/mieweb/cloud#readme",
+  "bugs": "https://github.com/mieweb/cloud/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mieweb/cloud.git",
+    "directory": "packages/cloud-workers"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./src/index.d.ts",
       "workerd": "./src/cloudflare.ts",
-      "default": "./src/node.ts"
+      "default": "./src/node.mjs"
     }
   },
   "files": [
