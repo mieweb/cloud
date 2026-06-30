@@ -20,6 +20,8 @@ implement the same Cloudflare-shaped contract.
 | [`cloud-workers`](cloud-workers) | The `DurableObject` base. Backs the **`mieweb:workers`** virtual import: re-exports `cloudflare:workers` on Cloudflare (workerd export condition), pure-JS base everywhere else. |
 | [`cloud`](cloud) | Umbrella entry. Re-exports the contracts + `DurableObject` from one stable import surface (`@mieweb/cloud`). |
 | [`cloud-local`](cloud-local) | Local/Node **adapters** (the POC): D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process registry. Vectorize/Workers AI surface explicit `UnsupportedBindingError`. Includes the Node **host harness** that runs the unchanged worker handler and a migration runner. |
+| [`cloud-agent`](cloud-agent) | Event-driven **agent host**. Binds an agent definition + `AgentRuntime` to a Durable Object with queue-driven turns, suspend/resume, and alarms. Provides `hostAgent()` which returns DO class + worker wiring helpers. |
+| [`cloud-agent-cli`](cloud-agent-cli) | Message-first **CLI dispatcher** for `cloud-agent`. Agent identity from `basename(argv[0])`. Agent-specific packages (`jerry`, `lisa`, etc.) wrap this with their config. |
 | [`cli`](cli) | The **`mieweb`** CLI. On the `cloudflare` target it delegates verbatim to `wrangler`; on other targets it drives the matching adapter. |
 
 ## How it wires into the app
