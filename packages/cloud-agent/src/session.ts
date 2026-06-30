@@ -32,7 +32,8 @@ const json = (data: unknown, status = 200) =>
  */
 export function createSessionClass(
   agent: AgentDefinition,
-  createRuntime: (profile?: unknown) => AgentRuntime
+  createRuntime: (profile?: unknown) => AgentRuntime,
+  createTools?: (ctx: ToolContext) => unknown
 ) {
   return class AgentSession {
     private state: CloudStatefulState;
@@ -115,7 +116,7 @@ export function createSessionClass(
       request: Request,
       sessionId: string
     ): Promise<Response> {
-      const { message, userId, profile: _profile } = await request.json() as {
+      const { message, userId, profile } = await request.json() as {
         message: string;
         userId?: string;
         profile?: unknown;
@@ -143,22 +144,22 @@ export function createSessionClass(
         await insertEvent(this.env.DB, sessionId, "resumed");
       }
 
-      await this.env.JOBS.send({
-        sessionId,
-        eventId,
-        message,
-        isResume,
-      });
-
       await updateSessionStatus(this.env.DB, sessionId, "running");
 
-      return json({
-        ok: true,
-        sessionId,
-        eventId,
-        status: "queued",
-        wasResume: isResume,
+      // Synchronous turn for --call (POST /messages). Async enqueue uses /enqueue.
+      const turnRequest = new Request("http://internal/turn", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          eventId,
+          message,
+          isResume,
+          profile,
+        } satisfies TurnJob),
       });
+
+      return this.handleTurn(turnRequest, sessionId);
     }
 
     /**
@@ -189,10 +190,8 @@ export function createSessionClass(
           content: m.content,
         }));
 
-        const runtime = createRuntime();
+        const runtime = createRuntime(job.profile);
 
-        // Tool context for tools to access bindings and control flow
-        // TODO: Pass this to tools when they're implemented
         const toolContext: ToolContext = {
           sessionId,
           db: this.env.DB,
@@ -212,14 +211,15 @@ export function createSessionClass(
             this.suspendMessage = message;
           },
         };
-        void toolContext; // Will be passed to tools when implemented
+
+        const tools = createTools?.(toolContext) ?? agent.tools;
 
         let assistantContent = "";
         let finishReason = "stop";
 
         for await (const event of runtime.runTurn({
           messages: coreMessages,
-          tools: agent.tools,
+          tools,
           system: agent.instructions,
           maxSteps: 10,
         })) {

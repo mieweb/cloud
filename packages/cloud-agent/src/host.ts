@@ -46,9 +46,9 @@ function extractUserId(request: Request): string | undefined {
  * - handleScheduled: Optional cron handler
  */
 export function hostAgent(config: HostAgentConfig): HostAgentResult {
-  const { agent, createRuntime } = config;
+  const { agent, createRuntime, createTools } = config;
 
-  const SessionClass = createSessionClass(agent, createRuntime);
+  const SessionClass = createSessionClass(agent, createRuntime, createTools);
 
   async function handleFetch(
     request: Request,

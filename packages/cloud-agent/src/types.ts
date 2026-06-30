@@ -107,6 +107,8 @@ export interface TurnJob {
   message?: string;
   isResume?: boolean;
   scheduledPayload?: unknown;
+  /** Privacy profile override from the request (runtime, model, egress). */
+  profile?: unknown;
 }
 
 /**
@@ -193,6 +195,11 @@ export interface HostAgentConfig {
   agent: AgentDefinition;
   /** Factory function to create runtime for a turn (receives profile from request) */
   createRuntime: (profile?: unknown) => AgentRuntime;
+  /**
+   * Build tools for a turn from host bindings (DB, vectors, alarms, …).
+   * When omitted, static `agent.tools` is used.
+   */
+  createTools?: (ctx: ToolContext) => unknown;
   /** Store bindings (built from env) */
   store: HostStore;
   /** Trigger definitions (optional, defaults to standard routes) */
