@@ -8,6 +8,7 @@
 
 import type {
   CloudDatabase,
+  CloudMessageBatch,
   CloudQueue,
   CloudStatefulNamespace,
   CloudStatefulState,
@@ -105,6 +106,7 @@ export interface TurnJob {
   sessionId: string;
   eventId: string;
   message?: string;
+  userId?: string;
   isResume?: boolean;
   scheduledPayload?: unknown;
   /** Privacy profile override from the request (runtime, model, egress). */
@@ -235,7 +237,7 @@ export interface HostAgentResult {
   ) => Promise<Response>;
   /** Handle a queue batch (forwards to DO) */
   handleQueue: (
-    batch: { messages: Array<{ body: TurnJob; ack: () => void }> },
+    batch: CloudMessageBatch<TurnJob>,
     env: HostEnv
   ) => Promise<void>;
   /** Handle scheduled events (optional) */

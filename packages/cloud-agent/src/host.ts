@@ -9,6 +9,7 @@ import type {
   HostEnv,
   TurnJob,
 } from "./types.js";
+import type { CloudMessageBatch } from "@mieweb/cloud-types";
 import { createSessionClass } from "./session.js";
 import { initSchema, insertActivityEvent } from "./storage.js";
 
@@ -110,13 +111,16 @@ export function hostAgent(config: HostAgentConfig): HostAgentResult {
     }
 
     if (path.endsWith("/enqueue") && request.method === "POST") {
-      const body = await request.json() as { message: string };
+      const body = await request.json() as { message: string; profile?: unknown };
+      const userId = extractUserId(request);
 
       const eventId = crypto.randomUUID();
       await env.JOBS.send({
         sessionId,
         eventId,
         message: body.message,
+        userId,
+        profile: body.profile,
       });
 
       return json({ ok: true, sessionId, eventId, status: "queued" });
@@ -131,7 +135,7 @@ export function hostAgent(config: HostAgentConfig): HostAgentResult {
   }
 
   async function handleQueue(
-    batch: { messages: Array<{ body: TurnJob; ack: () => void }> },
+    batch: CloudMessageBatch<TurnJob>,
     env: HostEnv
   ): Promise<void> {
     for (const message of batch.messages) {
@@ -152,12 +156,14 @@ export function hostAgent(config: HostAgentConfig): HostAgentResult {
         if (!response.ok) {
           const error = await response.text();
           console.error(`Turn failed for session ${job.sessionId}:`, error);
+          message.retry();
+          continue;
         }
 
         message.ack();
       } catch (err) {
         console.error(`Queue processing error for session ${job.sessionId}:`, err);
-        message.ack();
+        message.retry();
       }
     }
   }

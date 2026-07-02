@@ -110,7 +110,7 @@ export function createSessionClass(
     }
 
     /**
-     * Handle incoming message - record event and enqueue turn.
+     * Handle incoming message - delegate to handleTurn for persistence and execution.
      */
     private async handleMessage(
       request: Request,
@@ -122,39 +122,14 @@ export function createSessionClass(
         profile?: unknown;
       };
 
-      const session = await getOrCreateSession(this.env.DB, sessionId, userId);
-
-      if (session.status === "running") {
-        return json(
-          { error: "Turn already in progress", status: session.status },
-          409
-        );
-      }
-
-      const eventId = await insertEvent(this.env.DB, sessionId, "user_message", {
-        message,
-      });
-      await insertMessage(this.env.DB, sessionId, "user", message);
-
-      const isResume =
-        session.status === "waiting_for_user" ||
-        session.status === "waiting_for_approval";
-
-      if (isResume) {
-        await insertEvent(this.env.DB, sessionId, "resumed");
-      }
-
-      await updateSessionStatus(this.env.DB, sessionId, "running");
-
-      // Synchronous turn for --call (POST /messages). Async enqueue uses /enqueue.
       const turnRequest = new Request("http://internal/turn", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           sessionId,
-          eventId,
+          eventId: crypto.randomUUID(),
           message,
-          isResume,
+          userId,
           profile,
         } satisfies TurnJob),
       });
@@ -178,11 +153,36 @@ export function createSessionClass(
       this.suspendMessage = null;
 
       try {
-        // Read job from request (used for context, e.g. scheduledPayload)
         const job = await request.json() as TurnJob;
-        void job; // Used in future for scheduledPayload handling
-        // Ensure session exists (also validates sessionId)
-        await getOrCreateSession(this.env.DB, sessionId);
+        const session = await getOrCreateSession(
+          this.env.DB,
+          sessionId,
+          job.userId
+        );
+
+        if (session.status === "running") {
+          return json(
+            { error: "Turn already in progress", status: session.status },
+            409
+          );
+        }
+
+        if (job.message) {
+          const isResume =
+            session.status === "waiting_for_user" ||
+            session.status === "waiting_for_approval";
+
+          await insertEvent(this.env.DB, sessionId, "user_message", {
+            message: job.message,
+          });
+          await insertMessage(this.env.DB, sessionId, "user", job.message);
+
+          if (isResume) {
+            await insertEvent(this.env.DB, sessionId, "resumed");
+          }
+        }
+
+        await updateSessionStatus(this.env.DB, sessionId, "running");
 
         const messages = await getSessionMessages(this.env.DB, sessionId);
         const coreMessages = messages.map((m) => ({
@@ -278,6 +278,15 @@ export function createSessionClass(
           message: assistantContent,
           finishReason,
         });
+      } catch (err) {
+        await insertEvent(this.env.DB, sessionId, "error", {
+          message: String(err instanceof Error ? err.message : err),
+        });
+        await updateSessionStatus(this.env.DB, sessionId, "idle");
+        return json(
+          { error: String(err instanceof Error ? err.message : err) },
+          500
+        );
       } finally {
         this.turnInProgress = false;
       }
