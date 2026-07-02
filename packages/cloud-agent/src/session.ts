@@ -86,15 +86,21 @@ export function createSessionClass(
     async alarm(): Promise<void> {
       const sessionId = this.state.id.toString();
       const payload = await this.state.storage.get<unknown>("alarm_payload");
-      await this.state.storage.delete("alarm_payload");
 
-      await insertEvent(this.env.DB, sessionId, "scheduled_wake", payload);
+      const eventId = await insertEvent(
+        this.env.DB,
+        sessionId,
+        "scheduled_wake",
+        payload
+      );
 
       await this.env.JOBS.send({
         sessionId,
-        eventId: crypto.randomUUID(),
+        eventId,
         scheduledPayload: payload,
       });
+
+      await this.state.storage.delete("alarm_payload");
     }
 
     /**

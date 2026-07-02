@@ -172,7 +172,7 @@ export async function insertEvent(
       `INSERT INTO events (id, session_id, type, payload, created_at)
        VALUES (?, ?, ?, ?, ?)`
     )
-    .bind(id, sessionId, type, payload ? JSON.stringify(payload) : null, now)
+    .bind(id, sessionId, type, payload === undefined ? null : JSON.stringify(payload), now)
     .run();
   return id;
 }
