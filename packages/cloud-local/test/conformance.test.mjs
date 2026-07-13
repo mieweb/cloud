@@ -21,6 +21,8 @@ import {
   createSqliteD1,
   createSqliteVecIndex,
   createAiBackend,
+  createCloudEnv,
+  settleEnv,
 } from '../src/index.mjs';
 
 function tmp(prefix) {
@@ -40,6 +42,15 @@ async function hasSqliteVec() {
   if (!(await hasSqlite())) return false;
   try {
     await import('sqlite-vec');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function hasFootnote() {
+  try {
+    await import('@mieweb/footnote/vectorize');
     return true;
   } catch {
     return false;
@@ -145,6 +156,48 @@ test('Vectorize (sqlite-vec): upsert/query/filter/getByIds/deleteByIds', async (
     const got = await idx.getByIds(['a', 'missing']);
     assert.equal(got.length, 1);
     assert.equal(got[0].metadata.org, 'o9');
+
+    await idx.deleteByIds(['b']);
+    const afterDelete = await idx.query([0, 1, 0, 0], { topK: 5 });
+    assert.ok(!afterDelete.matches.some((m) => m.id === 'b'));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// Same Vectorize contract, but driven through the FOOTNOTE driver exactly as a
+// `mieweb.jsonc` binding of `{ driver: 'footnote' }` would be — this covers the
+// registerDriver('footnote', …) resolution path in registry.mjs, not just the
+// footnote package in isolation.
+test('Vectorize (footnote driver): resolves via createCloudEnv + honors contract', async (t) => {
+  if (!(await hasFootnote())) return t.skip('@mieweb/footnote not linked');
+  const dir = tmp('mwc-footnote-');
+  try {
+    const targetConfig = {
+      bindings: {
+        VECTOR: { driver: 'footnote', name: 'idx', dim: 4, metric: 'cosine', path: 'idx.sqlite' },
+      },
+    };
+    const { env } = createCloudEnv({ targetConfig, root: dir, target: 'local' });
+    await settleEnv(env); // createLocalIndex constructs asynchronously
+    const idx = env.VECTOR;
+    assert.ok(idx, 'VECTOR binding resolved to a footnote index');
+
+    await idx.upsert([
+      { id: 'a', values: [1, 0, 0, 0], metadata: { org: 'o1', kind: 'doc' } },
+      { id: 'b', values: [0, 1, 0, 0], metadata: { org: 'o1', kind: 'call' } },
+      { id: 'c', values: [0.9, 0.1, 0, 0], metadata: { org: 'o2', kind: 'doc' } },
+    ]);
+
+    const top = await idx.query([1, 0, 0, 0], { topK: 2, returnMetadata: true });
+    assert.equal(top.matches[0].id, 'a');
+    assert.ok(top.matches[0].score > top.matches[1].score);
+
+    const filtered = await idx.query([1, 0, 0, 0], { topK: 5, filter: { org: { $eq: 'o1' } } });
+    assert.deepEqual(filtered.matches.map((m) => m.id).sort(), ['a', 'b']);
+
+    const inFilter = await idx.query([1, 0, 0, 0], { topK: 5, filter: { kind: { $in: ['call'] } } });
+    assert.deepEqual(inFilter.matches.map((m) => m.id), ['b']);
 
     await idx.deleteByIds(['b']);
     const afterDelete = await idx.query([0, 1, 0, 0], { topK: 5 });
