@@ -24,7 +24,8 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.0"
+    "@hono/node-server": "^1.13.0",
+    "@mieweb/footnote": "link:../../vendor/footnote"
   },
   "optionalDependencies": {
     "better-sqlite3": "^11.0.0",

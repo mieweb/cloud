@@ -1,0 +1,4 @@
+[submodule "vendor/footnote"]
+	path = vendor/footnote
+	url = https://github.com/mieweb/melvil-artipod-footnote
+	branch = main
