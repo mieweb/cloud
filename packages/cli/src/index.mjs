@@ -22,6 +22,7 @@ import { loadConfig } from './config.mjs';
 import { delegateToWrangler } from './cloudflare.mjs';
 import { runHostTarget } from './local.mjs';
 import { runInit } from './init.mjs';
+import { runImagesCommand, runRegistryCommand } from './images.mjs';
 
 /** Read this CLI's version from its package.json. */
 function miewebVersion() {
@@ -74,6 +75,25 @@ async function main(argv) {
 
   const config = loadConfig({ overrideTarget });
 
+  // Container image plumbing (build once, skopeo copy — container-plan.md M2).
+  // `images push` on the cloudflare target delegates to wrangler's managed
+  // registry; every other target goes through skopeo to its own registry.
+  if (args[0] === 'images') {
+    if (config.target === 'cloudflare' && args[1] === 'push') {
+      return delegateToWrangler(['containers', 'push', ...args.slice(2)], { cwd: config.root });
+    }
+    return runImagesCommand(args.slice(1), config).catch((err) => {
+      console.error(err?.message ?? err);
+      return 1;
+    });
+  }
+  if (args[0] === 'registry') {
+    return runRegistryCommand(args.slice(1), config).catch((err) => {
+      console.error(err?.message ?? err);
+      return 1;
+    });
+  }
+
   if (config.target === 'cloudflare') {
     // Reference path: hand everything to wrangler untouched.
     return delegateToWrangler(args, { cwd: config.root });
@@ -112,6 +132,8 @@ function printHelp() {
       '  mieweb deploy                       Deploy (cloudflare only).',
       '  mieweb tail                         Stream logs (cloudflare only).',
       '  mieweb d1 migrations apply <db>     Apply ./migrations to the target DB.',
+      '  mieweb images build|push|inspect|status   Build & skopeo-push container images.',
+      '  mieweb registry login|logout        skopeo login to the target registry.',
       '',
       'Selecting a target:',
       '  mieweb --target local dev           Flag form.',

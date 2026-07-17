@@ -132,25 +132,25 @@ Teach the sidecar config and CLI that containers exist, without implementing the
 
 Image *distribution* only — nothing runs yet.
 
-- [ ] New CLI module `packages/cli/src/images.mjs`:
-  - [ ] `detectBuilder()` — prefer `buildah bud`, fall back to `docker build`;
+- [x] New CLI module `packages/cli/src/images.mjs`:
+  - [x] `detectBuilder()` — prefer `buildah bud`, fall back to `docker build`;
         error clearly if neither is installed.
-  - [ ] `buildImage({ dockerfile, context, tag })` — build to local
+  - [x] `buildImage({ dockerfile, context, tag })` — build to local
         `containers-storage:` (buildah) or the Docker daemon.
-  - [ ] `pushImage({ tag, registry })` — `skopeo copy` from local storage to
+  - [x] `pushImage({ tag, registry })` — `skopeo copy` from local storage to
         `docker://<registry.url>/<project>/<name>:<tag>`; support
         `--authfile`/creds from the target's `registry` config; never log secrets.
-  - [ ] `inspectImage(ref)` — `skopeo inspect` for digest pinning (record the
+  - [x] `inspectImage(ref)` — `skopeo inspect` for digest pinning (record the
         digest so deploys are reproducible).
-- [ ] `mieweb images push --target mieweb` subcommand wiring in
+- [x] `mieweb images push --target mieweb` subcommand wiring in
       `packages/cli/src/index.mjs` (build + skopeo copy to Harbor).
-- [ ] For `--target cloudflare`, delegate to `wrangler containers push` (or
+- [x] For `--target cloudflare`, delegate to `wrangler containers push` (or
       `wrangler deploy`, which builds+pushes) — do **not** reimplement CF's
       managed-registry auth with skopeo initially; leave a TODO with the
       `wrangler containers images` escape hatch.
-- [ ] Digest-pin file (e.g. `.mieweb/images.lock.json`): image name → digest per
+- [x] Digest-pin file (e.g. `.mieweb/images.lock.json`): image name → digest per
       target, written on push, read on deploy.
-- [ ] Docs: short "Images" section in `packages/cli` README (or root README)
+- [x] Docs: short "Images" section in `packages/cli` README (or root README)
       covering skopeo/buildah prerequisites (`brew install skopeo buildah` /
       distro packages).
 
@@ -300,16 +300,16 @@ skopeo inspect docker://harbor.os.mieweb.org/cloud-apps/jobrunner:latest
 
 ### Documentation checklist
 
-- [ ] Root `README.md`: add Containers row to the binding table + a short
+- [x] Root `README.md`: add Containers row to the binding table + a short
       "Containers" section with the app-side example above and the
       target-support matrix (cloudflare ✅ / local ⏳ M4 / mieweb ⏳ M4).
-- [ ] `packages/cli` README (create if absent): "Images" section — prerequisites
+- [x] `packages/cli` README (create if absent): "Images" section — prerequisites
       (`brew install skopeo buildah`), the `mieweb images …` and
       `mieweb registry …` commands, lockfile semantics, Harbor conventions
       (project/repo/tag naming from Milestone 3).
-- [ ] `packages/cloud-types/src/index.ts` header table row + doc comments
+- [x] `packages/cloud-types/src/index.ts` header table row + doc comments
       (part of M0, listed here for completeness).
-- [ ] Sample configs (`packages/cloud-os/mieweb.sample.jsonc`,
+- [x] Sample configs (`packages/cloud-os/mieweb.sample.jsonc`,
       `packages/test-app/mieweb.jsonc`): commented-out registry + container
       binding blocks matching the example above.
 - [ ] "Debugging containers" subsection: the `wrangler containers ssh` /
