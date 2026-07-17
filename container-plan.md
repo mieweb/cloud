@@ -158,14 +158,16 @@ Image *distribution* only — nothing runs yet.
 
 The cluster work lives in **opensource-server**; this repo only consumes it.
 
-- [ ] Define the Harbor conventions the CLI assumes: project = app name,
+- [x] Define the Harbor conventions the CLI assumes: project = app name,
       repo = container class name (lowercased), tag = git short SHA, plus a
       `latest` moving tag. Document in the plan/README.
-- [ ] Support robot-account auth (`username: 'robot$…'`) and `authFile` in the
+- [x] Support robot-account auth (`username: 'robot$…'`) and `authFile` in the
       registry config; verify skopeo works against Harbor's token service.
-- [ ] Forgejo Actions workflow sketch (checked into the app repo, not executed
+      *(config + flags done; live-Harbor verification blocked on the cluster — see last box)*
+- [x] Forgejo Actions workflow sketch (checked into the app repo, not executed
       here): build with buildah, `skopeo copy` to Harbor, run conformance.
       Add as a commented example under `packages/test-app/` or docs.
+      → `packages/test-app/forgejo-images.example.yml`
 - [ ] Coordinate with opensource-server: record the Harbor URL + CA expectations
       once the standalone cluster deploy lands (blocker for end-to-end testing;
       until then use a local Harbor via docker-compose or `skopeo copy` to
