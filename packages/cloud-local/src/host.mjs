@@ -1,6 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { createCloudEnv, settleEnv } from './index.mjs';
+import { createUnsupportedBinding } from './adapters/unsupported.mjs';
 
 /**
  * Node host harness: runs the **unchanged** worker handler off Cloudflare.
@@ -65,6 +66,24 @@ export async function startLocalHost({ config }) {
     doClasses,
   });
   await settleEnv(env);
+
+  // Container-backed DO bindings (Cloudflare Containers) have no off-Cloudflare
+  // runtime yet: boot cleanly, throw UnsupportedBindingError on first use.
+  // (Reserved surface — see container-plan.md Milestone 4.)
+  const containerClasses = new Set(
+    (Array.isArray(wrangler.containers) ? wrangler.containers : []).map(
+      (/** @type {{ class_name?: string }} */ c) => c.class_name,
+    ),
+  );
+  for (const b of doBindings) {
+    if (containerClasses.has(b.class_name) && env[b.name] === undefined) {
+      env[b.name] = createUnsupportedBinding(
+        b.name,
+        config.target ?? 'local',
+        'container runtime adapter not yet implemented (see container-plan.md)',
+      );
+    }
+  }
 
   // 3. Serve fetch over HTTP.
   const port = targetConfig.port ?? wrangler?.dev?.port ?? 8787;

@@ -97,35 +97,35 @@ runs `images push` by hand.
 
 Reserve the surface in `@mieweb/cloud-types` so app code can be written against it.
 
-- [ ] Add `CloudContainerNamespace = DurableObjectNamespace` alias in
+- [x] Add `CloudContainerNamespace = DurableObjectNamespace` alias in
       `packages/cloud-types/src/index.ts` (a Container binding *is* a DO namespace).
-- [ ] Add `CloudContainerStub = DurableObjectStub` alias (what `getContainer()` returns).
-- [ ] Document the row in the primitive table in the file header:
+- [x] Add `CloudContainerStub = DurableObjectStub` alias (what `getContainer()` returns).
+- [x] Document the row in the primitive table in the file header:
       `Containers | DO-controlled Linux container | CloudContainerNamespace`.
-- [ ] Note in the doc comment that the app-side base class comes from
+- [x] Note in the doc comment that the app-side base class comes from
       `@cloudflare/containers` (`Container`) and is Cloudflare-shaped; portable
       adapters must emulate `ctx.container` (Milestone 4, deferred).
-- [ ] Update `packages/README.md` + root `README.md` binding tables with the new
+- [x] Update `packages/README.md` + root `README.md` binding tables with the new
       row, marked *cloudflare-only for now* (like Vectorize/AI were at POC time).
 
 ## Milestone 1 — Config schema + CLI awareness (cheap)
 
 Teach the sidecar config and CLI that containers exist, without implementing them.
 
-- [ ] `packages/cli/mieweb-config.schema.json`: add `"docker"`, `"harbor"` (registry
+- [x] `packages/cli/mieweb-config.schema.json`: add `"docker"` (registry
       hint) and keep `"unsupported"` as valid drivers for a container binding; add
       per-target `registry` object: `{ url, project, username, password | authFile,
       insecureSkipTlsVerify? }` (Harbor for `mieweb`).
-- [ ] CLI (`packages/cli/src/config.mjs`): parse the `containers` array from
+- [x] CLI (`packages/cli/src/config.mjs`): parse the `containers` array from
       `wrangler.jsonc` alongside `durable_objects.bindings` so container-backed DO
       bindings are identifiable (binding name → class name → image).
-- [ ] `mieweb --target cloudflare deploy/dev`: no behavior change — wrangler
+- [x] `mieweb --target cloudflare deploy/dev`: no behavior change — wrangler
       already handles `containers` natively; just make sure the CLI passes the
       config through untouched.
-- [ ] `mieweb --target local|mieweb dev`: on encountering a container-backed DO
+- [x] `mieweb --target local|mieweb dev`: on encountering a container-backed DO
       binding, wire `createUnsupportedBinding(name, target)` with a hint pointing
       at this plan ("container adapter not yet implemented").
-- [ ] Sample config: extend `packages/cloud-os/mieweb.sample.jsonc` and
+- [x] Sample config: extend `packages/cloud-os/mieweb.sample.jsonc` and
       `packages/test-app/mieweb.jsonc` comments showing the reserved shape (commented out).
 
 ## Milestone 2 — skopeo image plumbing (cheap-ish, no runtime)

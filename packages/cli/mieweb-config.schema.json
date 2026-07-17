@@ -22,6 +22,19 @@
         "properties": {
           "runtime": { "type": "string" },
           "port": { "type": "number" },
+          "registry": {
+            "type": "object",
+            "description": "OCI registry the CLI pushes container images to for this target (skopeo copy destination). Harbor for the mieweb target; unused on cloudflare (wrangler's managed registry).",
+            "properties": {
+              "url": { "type": "string", "description": "Registry host, e.g. harbor.os.mieweb.org." },
+              "project": { "type": "string", "description": "Registry project/namespace images are pushed under." },
+              "username": { "type": "string", "description": "Registry user (e.g. a Harbor robot account: robot$project+name)." },
+              "authFile": { "type": "string", "description": "Path to a containers-auth.json written by `skopeo login` / `mieweb registry login`. Preferred over inline credentials." },
+              "insecureSkipTlsVerify": { "type": "boolean", "description": "Disable TLS verification (dev registries only)." }
+            },
+            "required": ["url"],
+            "additionalProperties": true
+          },
           "bindings": {
             "type": "object",
             "additionalProperties": {
@@ -42,6 +55,7 @@
                     "s3",
                     "valkey",
                     "valkey-queue",
+                    "docker",
                     "unsupported"
                   ]
                 },

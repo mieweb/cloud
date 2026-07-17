@@ -13,6 +13,8 @@ import { parseJsonc } from './jsonc.mjs';
  * @property {Record<string, unknown>} wrangler parsed wrangler.jsonc
  * @property {Record<string, unknown>} raw      parsed mieweb.jsonc (or {} )
  * @property {Record<string, any>} targetConfig adapter config for the active target
+ * @property {Array<Record<string, any>>} containers wrangler `containers` entries (Cloudflare Containers)
+ * @property {Record<string, Record<string, any>>} containerBindings DO binding name → its wrangler `containers` entry, for container-backed bindings
  */
 
 /**
@@ -52,6 +54,26 @@ export function loadConfig(opts = {}) {
 
   const targetConfig = (raw.targets && raw.targets[target]) || {};
 
+  // Cloudflare Containers: wrangler's `containers` array pairs a DO class with
+  // an image; a DO binding whose class appears there is a container binding.
+  // (Reserved surface — see container-plan.md. wrangler handles these natively
+  // on the cloudflare target; other targets throw UnsupportedBindingError on
+  // use until a runtime adapter exists.)
+  const containers = Array.isArray(wrangler.containers)
+    ? /** @type {Array<Record<string, any>>} */ (wrangler.containers)
+    : [];
+  /** @type {Record<string, Record<string, any>>} */
+  const containerBindings = {};
+  const doBindings =
+    /** @type {{ bindings?: Array<{ name: string, class_name: string }> }} */ (
+      wrangler.durable_objects
+    )?.bindings ?? [];
+  for (const c of containers) {
+    for (const b of doBindings) {
+      if (b.class_name === c.class_name) containerBindings[b.name] = c;
+    }
+  }
+
   return {
     configPath: miewebPath ?? wranglerPath,
     root,
@@ -60,6 +82,8 @@ export function loadConfig(opts = {}) {
     wrangler,
     raw,
     targetConfig,
+    containers,
+    containerBindings,
   };
 }
 
