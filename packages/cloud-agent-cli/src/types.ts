@@ -45,6 +45,6 @@ export type StreamEvent =
   | { type: "text"; text: string }
   | { type: "tool-call"; toolName: string; input: unknown }
   | { type: "tool-result"; toolName: string; output: unknown }
-  | { type: "finish"; finishReason: string }
+  | { type: "finish"; finishReason: string; toolsUsed?: string[] }
   | { type: "error"; message: string }
-  | { type: "suspended"; reason: string; message?: string };
+  | { type: "suspended"; reason: string; message?: string; toolsUsed?: string[] };

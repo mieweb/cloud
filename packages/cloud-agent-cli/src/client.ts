@@ -63,6 +63,7 @@ export async function* streamCall(
     status?: string;
     suspended?: boolean;
     error?: string;
+    toolsUsed?: string[];
   };
 
   if (json.error) {
@@ -76,14 +77,17 @@ export async function* streamCall(
     yield { type: "text", text: json.message };
   }
 
+  const toolsUsed = json.toolsUsed?.length ? json.toolsUsed : undefined;
+
   if (json.suspended) {
     yield {
       type: "suspended",
       reason: json.status ?? "waiting_for_user",
       message: json.message,
+      toolsUsed,
     };
   } else {
-    yield { type: "finish", finishReason: "stop" };
+    yield { type: "finish", finishReason: "stop", toolsUsed };
   }
 }
 
@@ -133,6 +137,11 @@ async function* parseSSE(response: Response): AsyncGenerator<StreamEvent> {
   }
 }
 
+function toToolNames(value: unknown): string[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) return undefined;
+  return value.map((name) => String(name));
+}
+
 /**
  * Normalize server event to StreamEvent.
  */
@@ -162,7 +171,11 @@ function normalizeEvent(event: unknown): StreamEvent {
         output: e.output,
       };
     case "finish":
-      return { type: "finish", finishReason: String(e.finishReason ?? "stop") };
+      return {
+        type: "finish",
+        finishReason: String(e.finishReason ?? "stop"),
+        toolsUsed: toToolNames(e.toolsUsed),
+      };
     case "error":
       return { type: "error", message: String(e.message ?? "Unknown error") };
     case "suspend":
@@ -171,6 +184,7 @@ function normalizeEvent(event: unknown): StreamEvent {
         type: "suspended",
         reason: String(e.reason ?? "waiting_for_user"),
         message: e.message as string | undefined,
+        toolsUsed: toToolNames(e.toolsUsed),
       };
     default:
       return { type: "error", message: `Unknown event type: ${e.type}` };

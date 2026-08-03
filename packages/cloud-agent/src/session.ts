@@ -222,6 +222,8 @@ export function createSessionClass(
 
         let assistantContent = "";
         let finishReason = "stop";
+        /** Tool names invoked this turn, unique, in order of first call. */
+        const toolsUsed: string[] = [];
 
         for await (const event of runtime.runTurn({
           messages: coreMessages,
@@ -231,6 +233,10 @@ export function createSessionClass(
         })) {
           if (event.type === "text-delta") {
             assistantContent += event.text;
+          } else if (event.type === "tool-call") {
+            if (!toolsUsed.includes(event.toolName)) {
+              toolsUsed.push(event.toolName);
+            }
           } else if (event.type === "finish") {
             finishReason = event.finishReason;
           } else if (event.type === "suspend") {
@@ -264,6 +270,7 @@ export function createSessionClass(
             status: this.suspendReason,
             message: assistantContent || this.suspendMessage,
             suspended: true,
+            toolsUsed,
           });
         }
 
@@ -283,6 +290,7 @@ export function createSessionClass(
           status: "idle",
           message: assistantContent,
           finishReason,
+          toolsUsed,
         });
       } catch (err) {
         await insertEvent(this.env.DB, sessionId, "error", {
