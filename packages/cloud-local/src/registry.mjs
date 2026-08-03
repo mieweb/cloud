@@ -7,6 +7,7 @@ import { createInprocQueue } from './adapters/queue-inproc.mjs';
 import { createInprocNamespace } from './adapters/durable-inproc.mjs';
 import { createAiBackend } from './adapters/ai-multi.mjs';
 import { createUnsupportedBinding } from './adapters/unsupported.mjs';
+import { createLocalIndex } from '@mieweb/footnote/vectorize';
 
 /**
  * Driver registry — the single extension point for the portability layer.
@@ -68,6 +69,17 @@ registerDriver('sqlite', ({ cfg, resolvePath }) => createSqliteD1(resolvePath(cf
 
 registerDriver('sqlite-vec', ({ cfg, resolvePath }) =>
   createSqliteVecIndex(resolvePath(cfg.path), { dim: cfg.dim ?? 768 }),
+);
+
+// FOOTNOTE (artipod) — the richer Vectorize store: hybrid + FTS + assertion-aware
+// retrieval, same CloudVectorIndex contract. See mieweb/melvil-artipod-footnote.
+registerDriver('footnote', ({ cfg, resolvePath }) =>
+  createLocalIndex({
+    name: cfg.name ?? 'index',
+    dimensions: cfg.dim ?? 768,
+    metric: cfg.metric ?? 'cosine',
+    dbPath: cfg.path ? resolvePath(cfg.path) : undefined,
+  }),
 );
 
 registerDriver('fs', ({ cfg, resolvePath }) => createFsBucket(resolvePath(cfg.path)));

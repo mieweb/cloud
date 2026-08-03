@@ -47,6 +47,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.13.0
         version: 1.19.14(hono@4.12.23)
+      '@mieweb/footnote':
+        specifier: link:../../vendor/footnote
+        version: link:../../vendor/footnote
     optionalDependencies:
       better-sqlite3:
         specifier: ^11.0.0
@@ -729,6 +732,10 @@ packages:
 
   path-expression-matcher@1.5.0:
     resolution: {integrity: sha512-cbrerZV+6rvdQrrD+iGMcZFEiiSrbv9Tfdkvnusy6y0x0GKBXREFg/Y65GhIfm0tnLntThhzCnfKwp1WRjeCyQ==}
+    engines: {node: '>=14.0.0'}
+
+  path-expression-matcher@1.6.2:
+    resolution: {integrity: sha512-enSlaiat05iasnzmgNxRj8reFdj3puY2QpNgP1aPIaVfT6nn9ICuPoFlKHk8EN22HcwewshO+mN2DGbkCEOtqQ==}
     engines: {node: '>=14.0.0'}
 
   path-key@3.1.1:
@@ -1661,7 +1668,7 @@ snapshots:
 
   fast-xml-builder@1.2.0:
     dependencies:
-      path-expression-matcher: 1.5.0
+      path-expression-matcher: 1.6.2
       xml-naming: 0.1.0
     optional: true
 
@@ -1886,6 +1893,9 @@ snapshots:
   path-exists@4.0.0: {}
 
   path-expression-matcher@1.5.0:
+    optional: true
+
+  path-expression-matcher@1.6.2:
     optional: true
 
   path-key@3.1.1: {}
