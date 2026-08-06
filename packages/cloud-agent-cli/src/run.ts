@@ -60,6 +60,11 @@ async function handleCall(
   options: CliOptions
 ): Promise<void> {
   const sessionId = options.sessionId ?? generateSessionId();
+  const toolsUsed: string[] = [];
+
+  const noteTool = (name: string | undefined) => {
+    if (name && !toolsUsed.includes(name)) toolsUsed.push(name);
+  };
 
   if (options.debug) {
     console.error(`[debug] agent=${config.agent} session=${sessionId}`);
@@ -74,23 +79,31 @@ async function handleCall(
     })) {
       if (event.type === "text") {
         process.stdout.write(event.text);
-      } else if (event.type === "tool-call" && options.debug) {
-        console.error(`[tool] ${event.toolName}(${JSON.stringify(event.input)})`);
+      } else if (event.type === "tool-call") {
+        noteTool(event.toolName);
+        if (options.debug) {
+          console.error(`[tool] ${event.toolName}(${JSON.stringify(event.input)})`);
+        }
       } else if (event.type === "tool-result" && options.debug) {
         console.error(`[tool-result] ${event.toolName}: ${JSON.stringify(event.output)}`);
       } else if (event.type === "error") {
         console.error(`\nError: ${event.message}`);
         process.exitCode = 1;
       } else if (event.type === "suspended") {
+        event.toolsUsed?.forEach(noteTool);
         console.log(`\n[${event.reason}] ${event.message ?? ""}`);
         console.log(`Session: ${sessionId}`);
       } else if (event.type === "finish") {
+        event.toolsUsed?.forEach(noteTool);
         if (options.debug) {
           console.error(`\n[finish] reason=${event.finishReason}`);
         }
       }
     }
-    console.log(); // Final newline
+    console.log(); // Final newline after the reply
+    if (toolsUsed.length > 0) {
+      console.log(`tools: ${toolsUsed.join(" · ")}`);
+    }
   } catch (err) {
     console.error(`Error: ${err instanceof Error ? err.message : err}`);
     process.exitCode = 1;
