@@ -61,6 +61,7 @@ async function handleCall(
 ): Promise<void> {
   const sessionId = options.sessionId ?? generateSessionId();
   const toolsUsed: string[] = [];
+  let finishReason: string | undefined;
 
   const noteTool = (name: string | undefined) => {
     if (name && !toolsUsed.includes(name)) toolsUsed.push(name);
@@ -94,6 +95,7 @@ async function handleCall(
         console.log(`\n[${event.reason}] ${event.message ?? ""}`);
         console.log(`Session: ${sessionId}`);
       } else if (event.type === "finish") {
+        finishReason = event.finishReason;
         event.toolsUsed?.forEach(noteTool);
         if (options.debug) {
           console.error(`\n[finish] reason=${event.finishReason}`);
@@ -101,6 +103,11 @@ async function handleCall(
       }
     }
     console.log(); // Final newline after the reply
+    if (finishReason === "length") {
+      console.error(
+        "[truncated] model hit the output token limit — ask to continue"
+      );
+    }
     if (toolsUsed.length > 0) {
       console.log(`tools: ${toolsUsed.join(" · ")}`);
     }

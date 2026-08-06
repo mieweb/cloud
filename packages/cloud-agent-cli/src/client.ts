@@ -64,6 +64,7 @@ export async function* streamCall(
     suspended?: boolean;
     error?: string;
     toolsUsed?: string[];
+    finishReason?: string;
   };
 
   if (json.error) {
@@ -87,7 +88,11 @@ export async function* streamCall(
       toolsUsed,
     };
   } else {
-    yield { type: "finish", finishReason: "stop", toolsUsed };
+    yield {
+      type: "finish",
+      finishReason: json.finishReason ?? "stop",
+      toolsUsed,
+    };
   }
 }
 
