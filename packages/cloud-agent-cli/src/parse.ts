@@ -4,16 +4,21 @@
  */
 
 import type { ParsedCommand, CliOptions } from "./types.js";
+import { readEnv } from "./env.js";
 
 /**
  * Parse CLI arguments into a command and options.
+ * `agent` scopes the session environment variable to that agent's namespace.
  */
-export function parseArgs(args: string[]): {
+export function parseArgs(
+  args: string[],
+  agent?: string
+): {
   command: ParsedCommand;
   options: CliOptions;
 } {
   const options: CliOptions = {
-    sessionId: process.env.JERRY_SESSION,
+    sessionId: readEnv(agent, "SESSION"),
     cwd: process.cwd(),
   };
 

@@ -9,7 +9,7 @@
  * import { hostAgent } from '@mieweb/cloud-agent';
  *
  * const { SessionClass, handleFetch, handleQueue } = hostAgent({
- *   agent: { name: 'jerry', instructions: '...', tools: [...] },
+ *   agent: { name: 'assistant', instructions: '...', tools: [...] },
  *   createRuntime: (profile) => resolveRuntime(profile),
  *   store: { db: env.DB },
  * });

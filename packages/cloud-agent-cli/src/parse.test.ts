@@ -11,7 +11,8 @@ describe("parseArgs", () => {
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    delete process.env.JERRY_SESSION;
+    delete process.env.AGENT_SESSION;
+    delete process.env.ASSISTANT_SESSION;
   });
 
   afterEach(() => {
@@ -102,10 +103,23 @@ describe("parseArgs", () => {
   });
 
   describe("session handling", () => {
-    it("uses JERRY_SESSION from env", () => {
-      process.env.JERRY_SESSION = "test-session-123";
-      const { command, options } = parseArgs(["hello"]);
+    it("uses AGENT_SESSION from env", () => {
+      process.env.AGENT_SESSION = "test-session-123";
+      const { options } = parseArgs(["hello"]);
       assert.strictEqual(options.sessionId, "test-session-123");
+    });
+
+    it("prefers the agent-scoped session variable", () => {
+      process.env.AGENT_SESSION = "shared";
+      process.env.ASSISTANT_SESSION = "scoped";
+      const { options } = parseArgs(["hello"], "assistant");
+      assert.strictEqual(options.sessionId, "scoped");
+    });
+
+    it("falls back to AGENT_SESSION when the scoped variable is unset", () => {
+      process.env.AGENT_SESSION = "shared";
+      const { options } = parseArgs(["hello"], "assistant");
+      assert.strictEqual(options.sessionId, "shared");
     });
 
     it("parses --session flag", () => {

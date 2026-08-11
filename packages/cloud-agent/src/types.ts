@@ -127,7 +127,8 @@ export interface AgentDefinition {
 
 /**
  * Minimal AgentRuntime interface expected by the host.
- * Matches the AgentRuntime port from @mieweb/jerry-agent-runtime.
+ * The consuming agent package supplies the implementation, which is what keeps
+ * model and provider selection out of the host.
  */
 export interface AgentRuntime {
   /** Execute a turn and yield events */

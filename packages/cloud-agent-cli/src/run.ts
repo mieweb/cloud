@@ -5,6 +5,7 @@
 import type { CliConfig, CliOptions } from "./types.js";
 import { parseArgs } from "./parse.js";
 import { streamCall, fireAndForget } from "./client.js";
+import { envPrefix, readEnv } from "./env.js";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:8787";
 
@@ -13,8 +14,9 @@ const DEFAULT_BASE_URL = "http://127.0.0.1:8787";
  * Agent-specific wrappers call this with their config.
  */
 export async function run(config: CliConfig): Promise<void> {
-  const baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
-  const { command, options } = parseArgs(process.argv.slice(2));
+  const baseUrl =
+    config.baseUrl ?? readEnv(config.agent, "URL") ?? DEFAULT_BASE_URL;
+  const { command, options } = parseArgs(process.argv.slice(2), config.agent);
 
   switch (command.type) {
     case "help":
@@ -129,6 +131,11 @@ function generateSessionId(): string {
  * Print help message.
  */
 function printHelp(agent: string): void {
+  const prefix = envPrefix(agent);
+  const urlVar = `${prefix}_URL`;
+  const sessionVar = `${prefix}_SESSION`;
+  const pad = (name: string) =>
+    name.padEnd(Math.max(urlVar.length, sessionVar.length) + 3);
   console.log(`
 ${agent} — message-first CLI
 
@@ -149,8 +156,8 @@ Examples:
   ${agent} I just made this PR
   ${agent} -txt quick note for the day
 
-Environment:
-  JERRY_URL       Override base URL (default: http://127.0.0.1:8787)
-  JERRY_SESSION   Override session ID
+Environment (falls back to AGENT_URL / AGENT_SESSION):
+  ${pad(urlVar)}Override base URL (default: ${DEFAULT_BASE_URL})
+  ${pad(sessionVar)}Override session ID
 `.trim());
 }
