@@ -1,0 +1,26 @@
+{
+  // Miniflare/workerd smoke config for @mieweb/cloud-agent.
+  // Bindings mirror what hostAgent() requires: D1, Queues, Durable Objects.
+  // Vectorize and AI are omitted because Miniflare does not emulate them.
+  "name": "cloud-agent-smoke",
+  "main": "worker.ts",
+  "compatibility_date": "2025-01-01",
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cloud-agent-smoke",
+      "database_id": "cloud-agent-smoke-local"
+    }
+  ],
+
+  "queues": {
+    "producers": [{ "binding": "JOBS", "queue": "cloud-agent-smoke-turns" }],
+    "consumers": [{ "queue": "cloud-agent-smoke-turns", "max_batch_size": 1 }]
+  },
+
+  "durable_objects": {
+    "bindings": [{ "name": "SESSION", "class_name": "AgentSession" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AgentSession"] }]
+}

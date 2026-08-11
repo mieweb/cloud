@@ -12,14 +12,19 @@ import assert from "node:assert";
  */
 class MockDatabase {
   private tables: Map<string, unknown[]> = new Map();
-  private execStatements: string[] = [];
+  private ddlStatements: string[] = [];
 
+  /**
+   * Mirrors D1: exec() rejects statements that span multiple lines, so the
+   * mock refuses them too and the schema path has to use prepare()/run().
+   */
   async exec(sql: string): Promise<void> {
-    this.execStatements.push(sql);
-    const createTableMatches = sql.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g);
-    for (const match of createTableMatches) {
-      if (!this.tables.has(match[1])) {
-        this.tables.set(match[1], []);
+    for (const line of sql.split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.endsWith(";")) {
+        throw new Error(
+          `D1_EXEC_ERROR: Error in line 1: ${trimmed}: incomplete input`
+        );
       }
     }
   }
@@ -34,6 +39,16 @@ class MockDatabase {
         return this;
       },
       async run() {
+        const ddlMatch = sql.match(/^\s*CREATE (TABLE|INDEX)/i);
+        if (ddlMatch) {
+          db.ddlStatements.push(sql);
+          const tableMatch = sql.match(/CREATE TABLE IF NOT EXISTS (\w+)/i);
+          if (tableMatch && !db.tables.has(tableMatch[1])) {
+            db.tables.set(tableMatch[1], []);
+          }
+          return {};
+        }
+
         const insertMatch = sql.match(/INSERT INTO (\w+)/i);
         if (insertMatch) {
           const table = insertMatch[1];
@@ -68,8 +83,8 @@ class MockDatabase {
     };
   }
 
-  getExecStatements() {
-    return this.execStatements;
+  getDdlStatements() {
+    return this.ddlStatements;
   }
 
   getTable(name: string) {
@@ -98,13 +113,34 @@ describe("storage", () => {
   describe("initSchema", () => {
     it("creates all required tables", async () => {
       await initSchema(db as any);
-      const statements = db.getExecStatements();
+      const statements = db.getDdlStatements();
       assert.ok(statements.length > 0);
-      assert.ok(statements[0].includes("CREATE TABLE IF NOT EXISTS sessions"));
-      assert.ok(statements[0].includes("CREATE TABLE IF NOT EXISTS events"));
-      assert.ok(statements[0].includes("CREATE TABLE IF NOT EXISTS messages"));
-      assert.ok(statements[0].includes("CREATE TABLE IF NOT EXISTS activity_events"));
-      assert.ok(statements[0].includes("CREATE TABLE IF NOT EXISTS summaries"));
+      for (const table of [
+        "sessions",
+        "events",
+        "messages",
+        "activity_events",
+        "summaries",
+      ]) {
+        assert.ok(
+          statements.some((s) =>
+            s.includes(`CREATE TABLE IF NOT EXISTS ${table}`)
+          ),
+          `missing CREATE TABLE for ${table}`
+        );
+      }
+    });
+
+    it("issues one statement per table so D1 exec() line limits cannot bite", async () => {
+      await initSchema(db as any);
+      for (const statement of db.getDdlStatements()) {
+        const bodies = statement.match(/CREATE (TABLE|INDEX)/gi) ?? [];
+        assert.strictEqual(
+          bodies.length,
+          1,
+          `expected a single statement, got: ${statement}`
+        );
+      }
     });
   });
 

@@ -23,11 +23,14 @@ function nowISO(): string {
 }
 
 /**
- * Initialize the schema. Idempotent - safe to call on every request.
+ * Schema statements, one per entry.
+ *
+ * D1's exec() splits on newlines and rejects statements that span lines, so the
+ * schema is applied as individual prepared statements instead. prepare()/run()
+ * is the one path every backend implements.
  */
-export async function initSchema(db: CloudDatabase): Promise<void> {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS sessions (
+const SCHEMA_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
       user_id TEXT,
       status TEXT NOT NULL DEFAULT 'idle',
@@ -35,45 +38,48 @@ export async function initSchema(db: CloudDatabase): Promise<void> {
       continuation TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS events (
+    )`,
+  `CREATE TABLE IF NOT EXISTS events (
       id TEXT PRIMARY KEY,
       session_id TEXT NOT NULL,
       type TEXT NOT NULL,
       payload TEXT,
       created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS messages (
+    )`,
+  `CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
       session_id TEXT NOT NULL,
       role TEXT NOT NULL,
       content TEXT,
       created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS activity_events (
+    )`,
+  `CREATE TABLE IF NOT EXISTS activity_events (
       id TEXT PRIMARY KEY,
       source TEXT NOT NULL,
       payload TEXT,
       occurred_at TEXT NOT NULL,
       ingested_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS summaries (
+    )`,
+  `CREATE TABLE IF NOT EXISTS summaries (
       id TEXT PRIMARY KEY,
       session_id TEXT,
       range_start TEXT NOT NULL,
       range_end TEXT NOT NULL,
       summary TEXT,
       created_at TEXT NOT NULL
-    );
+    )`,
+  `CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_activity_events_occurred ON activity_events(occurred_at)`,
+];
 
-    CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
-    CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
-    CREATE INDEX IF NOT EXISTS idx_activity_events_occurred ON activity_events(occurred_at);
-  `);
+/**
+ * Initialize the schema. Idempotent - safe to call on every request.
+ */
+export async function initSchema(db: CloudDatabase): Promise<void> {
+  for (const statement of SCHEMA_STATEMENTS) {
+    await db.prepare(statement).run();
+  }
 }
 
 /**
