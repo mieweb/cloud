@@ -43,8 +43,9 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
-      # OIDC trusted publishing needs a recent npm regardless of Node version.
-      - run: npm install -g npm@latest
+      # OIDC trusted publishing needs npm >= 11.5. Pin to 11.x: npm 12 rejects
+      # the `--git-checks` flag changesets passes (EUNKNOWNCONFIG).
+      - run: npm install -g npm@11
 
       - run: pnpm install --frozen-lockfile
 
