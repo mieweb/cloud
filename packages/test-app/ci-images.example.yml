@@ -1,9 +1,14 @@
 # CI workflow *sketch* for an app consuming @mieweb/cloud with containers
-# (container-plan.md Milestone 3). GitHub-Actions-compatible syntax, so it runs
-# unchanged on Forgejo Actions, Gitea Actions, or GitHub. Not executed in this
-# repo — copy into a consuming app (e.g. .forgejo/workflows/images.yml or
-# .github/workflows/images.yml) once the opensource-server cluster (CI + a
-# registry at cr.os.mieweb.org) is up.
+# (container-plan.md Milestone 3). Not executed in this repo — copy into a
+# consuming app once the opensource-server cluster (CI + a registry at
+# cr.os.mieweb.org) is up.
+#
+# Portability: this is GitHub Actions YAML. Only the Gitea family reads it —
+# Forgejo Actions (.forgejo/workflows/), Gitea Actions (.gitea/workflows/), and
+# GitHub itself (.github/workflows/). GitLab CI, Woodpecker, Drone, Jenkins,
+# Buildkite, Tekton do NOT. That's fine: the file is a thin wrapper and the real
+# logic is the three shell lines below (skopeo login, `mieweb images push`,
+# commit the lockfile). Port those, not the YAML. See FAQ.md → "different CI".
 #
 # Identity: a registry robot account (robot$<project>+ci) stored as the
 # REGISTRY_ROBOT_* secrets. Images are built with buildah (rootless, no daemon)

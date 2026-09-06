@@ -21,11 +21,11 @@ non-Cloudflare runtime, which we defer.
   docs use `cr.os.mieweb.org` ("container registry") and "the cluster's CI", never
   naming the products; today those are Harbor and Forgejo Actions running in the
   opensource-server standalone cluster. Anything OCI-distribution-compliant can
-  replace the registry, and the CI sketch is GitHub-Actions-compatible syntax so
-  it runs on Forgejo, Gitea, or GitHub — neither swap touches app configs. This
-  plan only reserves the config surface (registry URL + creds in `mieweb.jsonc`
-  targets block); the cluster deploy itself is tracked in opensource-server, not
-  here.
+  replace the registry, and the CI logic is three shell lines wrapped in a thin
+  workflow file (see [FAQ → different CI](FAQ.md#can-i-use-a-different-ci-than-forgejo-actions))
+  — neither swap touches app configs. This plan only reserves the config surface
+  (registry URL + creds in `mieweb.jsonc` targets block); the cluster deploy
+  itself is tracked in opensource-server, not here.
 - **Fail-loudly first.** Until a real adapter exists, non-Cloudflare targets
   surface `UnsupportedBindingError` through the existing
   `createUnsupportedBinding` proxy — same pattern as Vectorize/AI on `local`.

@@ -100,3 +100,25 @@ Dockerfile. Today the CLI still shells out to skopeo for transport; the migratio
 to `@artipod/core/oci`, and the semantic gap between artipod's sandbox realizer
 and a Cloudflare `Container` service, are worked through in
 [container-plan.md → Relationship to artipod](container-plan.md#relationship-to-artipod).
+
+## Can I use a different CI than Forgejo Actions?
+
+Yes. The CLI holds all the logic (`mieweb images push` builds, pushes, and pins
+digests); CI is a thin wrapper that runs it — the repo's script-first rule. The
+reference workflow, [packages/test-app/ci-images.example.yml](packages/test-app/ci-images.example.yml),
+is three shell steps: `skopeo login`, `mieweb images push --target mieweb`, and
+committing `.mieweb/images.lock.json`.
+
+One fact that trips people up: **"GitHub Actions compatible" is not universal.**
+Only the Gitea family reads that YAML:
+
+| CI | Reads the example as-is? |
+| --- | --- |
+| Forgejo Actions, Gitea Actions, GitHub Actions | yes — same `on:`/`jobs:`/`steps:`/`uses:` model, built on `act_runner` |
+| GitLab CI | no — `.gitlab-ci.yml`, `stages`/`script`/`image` |
+| Woodpecker, Drone | no — `steps` with `image` + `commands`; plugins are containers |
+| Jenkins, Buildkite, Tekton, Argo Workflows | no — Groovy / own YAML / k8s CRDs |
+
+So if the cluster's CI changes to something outside the Gitea family, rewrite the
+three shell steps in that CI's format — don't try to convert the YAML. Nothing in
+`mieweb.jsonc`, `wrangler.jsonc`, or the CLI knows which CI ran it.
