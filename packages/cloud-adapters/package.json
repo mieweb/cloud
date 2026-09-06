@@ -31,7 +31,7 @@
     "@hono/node-server": "^1.13.0"
   },
   "peerDependencies": {
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "^13.0.0",
     "sqlite-vec": "^0.1.6",
     "@libsql/client": "^0.14.0",
     "@aws-sdk/client-s3": "^3.600.0",
@@ -55,7 +55,7 @@
     }
   },
   "devDependencies": {
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "^13.0.0",
     "sqlite-vec": "^0.1.6",
     "@libsql/client": "^0.14.0",
     "@aws-sdk/client-s3": "^3.600.0",
