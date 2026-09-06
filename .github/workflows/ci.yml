@@ -17,14 +17,20 @@ concurrency:
 
 jobs:
   # Typecheck + unit conformance + the local target surface test. No services.
+  # Matrix spans every Node line `engines` admits so native addons
+  # (better-sqlite3, sqlite-vec) can't silently break on a newer runtime.
   unit:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
