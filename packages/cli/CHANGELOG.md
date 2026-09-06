@@ -1,5 +1,12 @@
 # @mieweb/cli
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [22d50b4]
+  - @mieweb/cloud-adapters@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
