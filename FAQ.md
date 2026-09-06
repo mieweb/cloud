@@ -82,3 +82,21 @@ CLI defers verbatim to `wrangler`.
 (CloudFront's compute add-ons — Lambda@Edge / CloudFront Functions — are also
 not a target here; a future AWS adapter tier would more likely map to Lambda +
 Aurora/S3/DynamoDB/SQS than to the CDN layer.)
+
+## How does this relate to artipod?
+
+[artipod](https://github.com/mieweb/artipod) (`npx artipod`) is the mieweb
+ecosystem's **canonical OCI layer**: a content-addressed image store (a standard
+OCI image-layout directory on disk), registry transports, and pluggable
+"realizers" that attach execution — a bash isolate or a hardened Docker/Podman
+container — to stored state. Its model inverts Docker's: the writable workspace is
+the versioned, pushable artifact; the image is just a base.
+
+`@mieweb/cloud` is a *consumer* of that layer, not a competitor. For the
+Containers surface it uses artipod where artipod is good — storing, inspecting,
+pushing and pulling images, and driving a local container runtime — and keeps
+buildah/docker for the one thing artipod deliberately doesn't do: executing a
+Dockerfile. Today the CLI still shells out to skopeo for transport; the migration
+to `@artipod/core/oci`, and the semantic gap between artipod's sandbox realizer
+and a Cloudflare `Container` service, are worked through in
+[container-plan.md → Relationship to artipod](container-plan.md#relationship-to-artipod).
