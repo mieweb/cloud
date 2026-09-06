@@ -1,0 +1,41 @@
+{
+  "name": "@mieweb/cloud-agent",
+  "version": "0.1.0",
+  "description": "Event-driven agent host for @mieweb/cloud. Binds an agent definition + AgentRuntime to a Durable Object with queue-driven turns, suspend/resume, and alarms.",
+  "type": "module",
+  "license": "MIT",
+  "author": "MIEWEB",
+  "homepage": "https://github.com/mieweb/cloud#readme",
+  "bugs": "https://github.com/mieweb/cloud/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mieweb/cloud.git",
+    "directory": "packages/cloud-agent"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "default": "./src/types.ts"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node --import tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@mieweb/cloud-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.19.0"
+  }
+}
