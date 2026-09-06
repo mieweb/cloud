@@ -9,14 +9,13 @@ non-Cloudflare runtime, which we defer.
 
 **Key choices**
 
-- **skopeo for image movement — today.** No Docker daemon needed to *distribute*: the CLI
+- **skopeo for image movement.** No Docker daemon needed to *distribute*: the CLI
   builds once (buildah/docker, whichever is present) and uses
   `skopeo copy` / `skopeo inspect` to push the OCI image to each target's registry
   (Cloudflare's managed registry via `wrangler containers push`, Harbor for the
   `mieweb` target, `oci-archive:`/`containers-storage:` for local caching).
-  The intended successor for the transport/store half is `@artipod/core/oci`; see
-  [Relationship to artipod](#relationship-to-artipod). Dockerfile *builds* stay on
-  buildah/docker either way.
+  Replacing skopeo with a library is a deferred evaluation, not a plan item
+  (see [Relationship to artipod](#relationship-to-artipod)).
 - **The `mieweb` target's registry and CI are abstract endpoints.** Config and
   docs use `cr.os.mieweb.org` ("container registry") and "the cluster's CI", never
   naming the products; today those are Harbor and Forgejo Actions running in the
@@ -35,44 +34,43 @@ non-Cloudflare runtime, which we defer.
 ## Relationship to artipod
 
 [`@artipod/core`](https://github.com/mieweb/artipod) (`npx artipod`) is the
-mieweb ecosystem's canonical layer for OCI manipulation: a content-addressed blob
-store whose on-disk form is a standard OCI image-layout directory, registry
-transports (push/pull missing-digests-only, resumable, relay-friendly), and
-"realizers" that attach execution to stored state. Where this plan shells out to
-skopeo or drives Docker directly, artipod is the intended replacement — with two
-honest caveats spelled out below.
+mieweb ecosystem's layer for **durable pod state and execution attached to that
+state**: a content-addressed OCI store, registry transports, and "realizers" that
+run commands against a pod (bash isolate, hardened Docker/Podman). Because it
+speaks OCI and drives Docker, the obvious question is whether this plan should
+build on it. The ownership boundary settled in
+[mieweb/artipod#56](https://github.com/mieweb/artipod/issues/56) says mostly no:
 
-### What maps onto what
+| Responsibility | Owner |
+| --- | --- |
+| Durable pod state, versioning/sync, executing commands against authorized pod state | artipod |
+| Arbitrary long-lived HTTP application containers, Durable Object lifecycle, routing, deployment/scaling and production access policy | **this repo** (Cloud) |
 
-| This plan | artipod | Verdict |
-| --- | --- | --- |
-| `detectBuilder()` → `buildah bud` / `docker build` | none — artipod imports directory trees and commits pod uppers; it has no Dockerfile builder | **keep** buildah/docker; bridge the result into an OCI layout (`buildah push oci:` / `docker save`) |
-| `pushImage()` → `skopeo copy … docker://harbor/…` | `@artipod/core/oci` transports | **replace** — drops the skopeo binary dependency |
-| `inspectImage()` → `skopeo inspect` | manifest/digest read straight from the OCI store | **replace** |
-| `registry login/logout` → `skopeo login` + authFile | artipod transport auth | **verify** it honors `containers-auth.json` / Harbor robot accounts before switching |
-| `.mieweb/images.lock.json` digest pins | content-addressed refs are the native model | **simplify** — lockfile becomes a view over store digests |
-| M4 `container-docker.mjs` (skopeo pull → docker run → proxy `fetch()`) | `@artipod/core/docker` realizer (socket auto-detection, `dockerode`, hardening) + `oci` pull | **build on** — the largest win, with the semantic gap below |
-| `mieweb` target "cluster runtime TBD" | `@artipod/core/server` pull-through cache + manager hosting | candidate answer for single-node `os.mieweb.org` |
+Sharing OCI formats or dockerode plumbing is not enough reason to move
+application-container lifecycle into artipod. Concretely for this plan:
 
-### Caveat 1 — no build step
+- **Image distribution stays on skopeo** (M2 as written). Swapping to
+  `@artipod/core/oci` is a separate, deferred evaluation — not a prerequisite or a
+  commitment (#56 decision D6).
+- **M4 is Cloud-owned.** The local/`mieweb` container adapter carries its own
+  lifecycle (port proxy, `sleepAfter` idle timer, DO-id → container mapping) and
+  pulls images with skopeo. A permissive "HTTP service" hardening profile inside
+  artipod was rejected; its sandbox defaults are preserved.
+- **What artipod *is* doing** (plan `cloud-container-56`, S0–S2, not started): a
+  pod-scoped server-execution demo in `artipod serve` — browser bash gains an
+  `ssh`-style adapter (`ssh server "find /"` → server isolate,
+  `ssh container@server "uname -a"` → hardened Docker backend over authorized pod
+  mounts). `serve` is a POC/reference host, not a production deployment path. Its
+  S2 container backend is a useful *reference* for socket discovery and hardened
+  `dockerode` use, not a dependency of M4.
 
-Cloudflare containers are Dockerfile-defined (`containers[].image: "./Dockerfile"`).
-artipod's model is *import a tree* or *commit a pod*; it never executes a
-Dockerfile. Something must — buildah, docker, or `wrangler containers build`. The
-bridge is cheap: build → export as `oci:` layout → artipod store/push.
-
-Related: artipod commits produce **volume images**
-(`application/vnd.artipod.volume.v1+json` config). Runtime images need the plain
-OCI image config (`Cmd`/`Entrypoint`). Confirm the transport passes arbitrary
-manifests through unmodified rather than only its own media type.
-
-### Caveat 2 — realizer semantics ≠ Cloudflare Container semantics
+### Why the boundary sits there — realizer semantics ≠ Container semantics
 
 A *realizer* is artipod's term for the thing that turns a pod's declarative mount
-table into something executable (bash isolate, Docker/Podman, later
-container2wasm). The Docker realizer is built for "run a command against
-versioned state, safely, offline". Cloudflare Containers are "give this Durable
-Object a sidecar HTTP service". The defaults are nearly inverse:
+table into something executable. Its Docker realizer answers "run a command
+against versioned state, safely, offline". A Cloudflare `Container` answers "give
+this Durable Object a sidecar HTTP service". The defaults are nearly inverse,
+which is why forcing one to serve the other was declined:
 
 | | artipod Docker realizer | Cloudflare `Container` (what M4 emulates) |
 | --- | --- | --- |
@@ -84,35 +82,11 @@ Object a sidecar HTTP service". The defaults are nearly inverse:
 | Identity | pod id / OCI ref | DO id → one container instance |
 | Mounts | the whole point | essentially none |
 
-Two ways to close the gap in M4:
-
-1. **Wrap artipod's low-level Docker plumbing** (socket discovery, create/start/stop)
-   but override the hardening profile — enable networking, use the app's image,
-   skip the mount table — and add the Cloudflare lifecycle shim (port proxy,
-   `sleepAfter` timer, DO-id → container-name mapping) here. Ships without touching
-   artipod's "do not regress" hardening guarantees.
-2. **Propose a second realizer upstream** — a *service realizer* whose contract is
-   *image + port + idle timeout → fetch handler*, alongside the sandbox realizer.
-   Makes artipod genuinely canonical for both "run a command in a pod" and "host a
-   container service"; M4 becomes a thin consumer. Proposed upstream as
-   [mieweb/artipod#56](https://github.com/mieweb/artipod/issues/56).
-
-### Other things to weigh
-
-- **Dependency weight.** `@mieweb/cli` is zero-dependency shell-outs today;
-  artipod carries ZenFS, just-bash, crypto/keyring, and agent tooling. Check that
-  `@artipod/core/oci` imports without dragging the browser/agent stack.
-- **Version coupling.** artipod is 0.10.x and moving fast. Both repos are ours,
-  but adopting it makes M2/M4 track its API.
-
-### Sequencing
-
-- **Now:** M2 lands on skopeo as written.
-- **Next:** swap `pushImage`/`inspectImage` to `@artipod/core/oci` behind the
-  existing function signatures in `packages/cli/src/images.mjs` (already isolated);
-  keep the buildah → OCI-layout bridge.
-- **M4:** build the adapter on `@artipod/core/docker` + `oci` pull, choosing option
-  1 or 2 above.
+Also relevant if the skopeo evaluation is ever reopened: artipod has no Dockerfile
+builder (it imports trees / commits pods), its commits use a
+`vnd.artipod.volume.v1+json` config rather than a runtime image config, and
+`@artipod/core` carries ZenFS/just-bash/keyring/agent dependencies where
+`@mieweb/cli` is zero-dependency shell-outs today.
 
 ---
 
@@ -278,11 +252,11 @@ Do **not** start until an app actually needs a container workload.
 - [ ] `mieweb` target: same adapter pointed at the cluster's container host
       (details TBD with opensource-server — possibly Podman over SSH or a k8s
       shim; decide then).
-- [ ] Pull images from Harbor into local storage before start — via
-      `@artipod/core/oci` (see [Relationship to artipod](#relationship-to-artipod));
-      skopeo only as a fallback.
-- [ ] Decide realizer strategy: wrap `@artipod/core/docker` plumbing with a local
-      lifecycle shim, or land a service realizer upstream in artipod first.
+- [ ] Pull images with skopeo from Harbor into local storage before start.
+- [ ] Lifecycle (port proxy, idle timer, DO-id → container mapping) is owned
+      here, not delegated to artipod — see
+      [Relationship to artipod](#relationship-to-artipod). artipod's S2 hardened
+      Docker backend is a reference for socket discovery / `dockerode` use only.
 - [ ] Conformance: add a container section to the test-app worker + harness
       (`packages/test-app/worker/index.mjs`, `harness/run.mjs`) exercising
       start, HTTP round-trip, sleepAfter, and stop across targets.
