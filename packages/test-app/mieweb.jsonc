@@ -20,6 +20,10 @@
         // No local model server in CI → surface UnsupportedBindingError, which
         // the worker reports as a skipped surface.
         "AI": { "driver": "unsupported" }
+        // Cloudflare Containers (reserved — container-plan.md M4): a container-
+        // backed DO binding needs no entry here; the host auto-wires it to
+        // UnsupportedBindingError until the docker driver lands. Then:
+        // "CONVERTER": { "driver": "docker" }
       }
     },
 

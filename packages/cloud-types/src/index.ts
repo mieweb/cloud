@@ -22,6 +22,7 @@
  *  | Durable Objects      | Artipods / stateful container | `CloudStatefulNamespace` |
  *  | Vectorize            | Footnote vector index         | `CloudVectorIndex`  |
  *  | Workers AI           | Ozwell AI gateway             | `CloudAI`           |
+ *  | Containers           | DO-controlled Linux container | `CloudContainerNamespace` |
  */
 
 /** SQLite-compatible database (Cloudflare D1). */
@@ -56,6 +57,21 @@ export type CloudVectorIndex = VectorizeIndex;
 
 /** AI model gateway ("Ozwell" / Cloudflare Workers AI). */
 export type CloudAI = Ai;
+
+/**
+ * Namespace of Durable-Object-controlled Linux containers (Cloudflare
+ * Containers). A container binding *is* a DO namespace: the app-side class
+ * (`class MyContainer extends Container`, from `@cloudflare/containers`)
+ * extends a Durable Object, and `wrangler.jsonc` pairs a `containers` array
+ * entry with an ordinary `durable_objects.bindings` entry.
+ *
+ * Cloudflare-only for now: non-Cloudflare adapters surface
+ * `UnsupportedBindingError` until a portable runtime emulates `ctx.container`
+ * (see container-plan.md, Milestone 4).
+ */
+export type CloudContainerNamespace = DurableObjectNamespace;
+/** What `getContainer(ns, id)` / `ns.get(id)` returns — a routable stub. */
+export type CloudContainerStub = DurableObjectStub;
 
 /** Per-request lifecycle hook (`waitUntil`, `passThroughOnException`). */
 export type CloudExecutionContext = ExecutionContext;

@@ -7,12 +7,15 @@
  *
  * @param {string} bindingName e.g. 'SEARCH_INDEX'
  * @param {string} target e.g. 'local'
+ * @param {string} [hint] optional guidance appended to the error message
  * @returns {any} a proxy that throws on use
  */
-export function createUnsupportedBinding(bindingName, target) {
+export function createUnsupportedBinding(bindingName, target, hint) {
   const fail = () => {
     const err = new Error(
-      `Binding "${bindingName}" is not supported on target "${target}".`,
+      `Binding "${bindingName}" is not supported on target "${target}"${
+        hint ? `: ${hint}` : '.'
+      }`,
     );
     err.name = 'UnsupportedBindingError';
     throw err;

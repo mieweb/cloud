@@ -24,7 +24,7 @@ organizing principle:
 
 | Package | Role |
 | ------- | ---- |
-| [`@mieweb/cloud-types`](packages/cloud-types) | The portable contracts (`CloudDatabase`, `CloudBucket`, `CloudKV`, `CloudQueue`, `CloudStatefulNamespace`, `CloudVectorIndex`, `CloudAI`) plus `UnsupportedBindingError`. On Cloudflare these are exact aliases of the native binding types. |
+| [`@mieweb/cloud-types`](packages/cloud-types) | The portable contracts (`CloudDatabase`, `CloudBucket`, `CloudKV`, `CloudQueue`, `CloudStatefulNamespace`, `CloudVectorIndex`, `CloudAI`, `CloudContainerNamespace`) plus `UnsupportedBindingError`. On Cloudflare these are exact aliases of the native binding types. |
 | [`@mieweb/cloud-workers`](packages/cloud-workers) | The `DurableObject` base. Backs the **`mieweb:workers`** virtual import: re-exports `cloudflare:workers` on Cloudflare (workerd export condition), pure-JS base everywhere else. |
 | [`@mieweb/cloud`](packages/cloud) | Umbrella entry — re-exports the contracts + `DurableObject` from one stable import surface. |
 | [`@mieweb/cloud-local`](packages/cloud-local) | Local/Node **adapters**: D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process registry. Vectorize/Workers AI surface explicit `UnsupportedBindingError`. Includes a Node host harness + migration runner. |
@@ -97,6 +97,24 @@ Surfaces a target can't provide answer `501 { skipped: true }` instead of
 failing (e.g. Workers AI needs a model backend; Cloudflare local dev can't reach
 Vectorize/AI without credentials), so one suite stays green everywhere. The
 `local` target also runs as a plain `node --test` under `pnpm -r test`.
+
+## Containers
+
+Cloudflare **Containers** (DO-controlled Linux containers) are a reserved
+surface of the contract: `CloudContainerNamespace` / `CloudContainerStub` in
+`@mieweb/cloud-types`. App code uses the stock Cloudflare shape — a
+`class MyContainer extends Container` (from `@cloudflare/containers`) paired
+with a `containers` entry + DO binding in `wrangler.jsonc` — and stays
+target-agnostic.
+
+| Target | Support |
+| ------ | ------- |
+| `cloudflare` | ✅ native (`wrangler dev` / `wrangler deploy`, `wrangler containers ssh` for a shell) |
+| `local` | ⏳ planned — Docker-backed adapter; today a container binding throws `UnsupportedBindingError` on use |
+| `mieweb` | ⏳ planned — image distribution via skopeo → Harbor, cluster runtime TBD |
+
+See [container-plan.md](container-plan.md) for the milestones, the skopeo/Harbor
+image pipeline, and the `myapp` walkthrough.
 
 ## Status
 

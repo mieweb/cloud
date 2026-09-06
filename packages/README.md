@@ -16,7 +16,7 @@ implement the same Cloudflare-shaped contract.
 
 | Package | Role |
 | ------- | ---- |
-| [`cloud-types`](cloud-types) | The portable contracts (`CloudDatabase`, `CloudBucket`, `CloudKV`, `CloudQueue`, `CloudStatefulNamespace`, `CloudVectorIndex`, `CloudAI`) plus `UnsupportedBindingError`. On Cloudflare these are exact aliases of the native binding types, so `worker/env.ts` keeps compiling unchanged. |
+| [`cloud-types`](cloud-types) | The portable contracts (`CloudDatabase`, `CloudBucket`, `CloudKV`, `CloudQueue`, `CloudStatefulNamespace`, `CloudVectorIndex`, `CloudAI`, `CloudContainerNamespace`) plus `UnsupportedBindingError`. On Cloudflare these are exact aliases of the native binding types, so `worker/env.ts` keeps compiling unchanged. |
 | [`cloud-workers`](cloud-workers) | The `DurableObject` base. Backs the **`mieweb:workers`** virtual import: re-exports `cloudflare:workers` on Cloudflare (workerd export condition), pure-JS base everywhere else. |
 | [`cloud`](cloud) | Umbrella entry. Re-exports the contracts + `DurableObject` from one stable import surface (`@mieweb/cloud`). |
 | [`cloud-local`](cloud-local) | Local/Node **adapters** (the POC): D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process registry. Vectorize/Workers AI surface explicit `UnsupportedBindingError`. Includes the Node **host harness** that runs the unchanged worker handler and a migration runner. |

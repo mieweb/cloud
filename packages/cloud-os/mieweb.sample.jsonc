@@ -13,6 +13,14 @@
     "mieweb": {
       "runtime": "node",
       "port": 8787,
+      // Cloudflare Containers (reserved — see container-plan.md): where
+      // `mieweb images push --target mieweb` skopeo-copies images to.
+      // "registry": {
+      //   "url": "harbor.os.mieweb.org",
+      //   "project": "cloud-apps",
+      //   "username": "robot$cloud-apps+ci",
+      //   "authFile": "~/.config/mieweb/harbor-auth.json"
+      // },
       "bindings": {
         // D1 → libSQL/sqld (SQLite-compatible: keeps FTS5). Migrations apply
         // unchanged. Add `authToken` for a secured server.
