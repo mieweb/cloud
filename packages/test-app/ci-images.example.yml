@@ -1,7 +1,9 @@
-# Forgejo Actions workflow *sketch* for an app consuming @mieweb/cloud with
-# containers (container-plan.md Milestone 3). Not executed in this repo —
-# copy into a consuming app as .forgejo/workflows/images.yml once the
-# opensource-server cluster (Forgejo + a registry at cr.os.mieweb.org) is up.
+# CI workflow *sketch* for an app consuming @mieweb/cloud with containers
+# (container-plan.md Milestone 3). GitHub-Actions-compatible syntax, so it runs
+# unchanged on Forgejo Actions, Gitea Actions, or GitHub. Not executed in this
+# repo — copy into a consuming app (e.g. .forgejo/workflows/images.yml or
+# .github/workflows/images.yml) once the opensource-server cluster (CI + a
+# registry at cr.os.mieweb.org) is up.
 #
 # Identity: a registry robot account (robot$<project>+ci) stored as the
 # REGISTRY_ROBOT_* secrets. Images are built with buildah (rootless, no daemon)
@@ -40,8 +42,8 @@ jobs:
 
       - name: Commit the digest lockfile bump
         run: |
-          git config user.name forgejo-actions
-          git config user.email actions@os.mieweb.org
+          git config user.name ci-images
+          git config user.email ci@os.mieweb.org
           git add .mieweb/images.lock.json
           git diff --cached --quiet || git commit -m "ci: pin container image digests"
           git push

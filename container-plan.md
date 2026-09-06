@@ -17,11 +17,12 @@ non-Cloudflare runtime, which we defer.
   The intended successor for the transport/store half is `@artipod/core/oci`; see
   [Relationship to artipod](#relationship-to-artipod). Dockerfile *builds* stay on
   buildah/docker either way.
-- **The `mieweb` target's registry is an abstract endpoint.** Config and docs use
-  `cr.os.mieweb.org` ("container registry") and never name the product; today
-  that is Harbor running in the opensource-server standalone cluster, with Forgejo
-  Actions as the eventual CI that builds + skopeo-copies images. Anything
-  OCI-distribution-compliant can replace it without touching app configs. This
+- **The `mieweb` target's registry and CI are abstract endpoints.** Config and
+  docs use `cr.os.mieweb.org` ("container registry") and "the cluster's CI", never
+  naming the products; today those are Harbor and Forgejo Actions running in the
+  opensource-server standalone cluster. Anything OCI-distribution-compliant can
+  replace the registry, and the CI sketch is GitHub-Actions-compatible syntax so
+  it runs on Forgejo, Gitea, or GitHub — neither swap touches app configs. This
   plan only reserves the config surface (registry URL + creds in `mieweb.jsonc`
   targets block); the cluster deploy itself is tracked in opensource-server, not
   here.
@@ -178,7 +179,7 @@ export default {
 The value proposition to sell in docs: **myapp's repo never mentions a target.**
 The same `worker/` + `converter/Dockerfile` pair deploys to Cloudflare's edge or
 the opensource-server cluster; only `mieweb.jsonc` (registry pointer) differs —
-and CI (Forgejo Actions) does the build + skopeo copy so the dev usually never
+and CI does the build + skopeo copy so the dev usually never
 runs `images push` by hand.
 
 ---
@@ -233,7 +234,7 @@ Image *distribution* only — nothing runs yet.
   - [x] `inspectImage(ref)` — `skopeo inspect` for digest pinning (record the
         digest so deploys are reproducible).
 - [x] `mieweb images push --target mieweb` subcommand wiring in
-      `packages/cli/src/index.mjs` (build + skopeo copy to Harbor).
+      `packages/cli/src/index.mjs` (build + skopeo copy to the registry).
 - [x] For `--target cloudflare`, delegate to `wrangler containers push` (or
       `wrangler deploy`, which builds+pushes) — do **not** reimplement CF's
       managed-registry auth with skopeo initially; leave a TODO with the
@@ -244,20 +245,21 @@ Image *distribution* only — nothing runs yet.
       covering skopeo/buildah prerequisites (`brew install skopeo buildah` /
       distro packages).
 
-## Milestone 3 — Harbor/Forgejo integration points (config only here)
+## Milestone 3 — Registry/CI integration points (config only here)
 
 The cluster work lives in **opensource-server**; this repo only consumes it.
 
-- [x] Define the Harbor conventions the CLI assumes: project = app name,
+- [x] Define the registry conventions the CLI assumes: project = app name,
       repo = container class name (lowercased), tag = git short SHA, plus a
       `latest` moving tag. Document in the plan/README.
 - [x] Support robot-account auth (`username: 'robot$…'`) and `authFile` in the
-      registry config; verify skopeo works against Harbor's token service.
+      registry config; verify skopeo works against the registry's token service
+      (Harbor today).
       *(config + flags done; live-Harbor verification blocked on the cluster — see last box)*
-- [x] Forgejo Actions workflow sketch (checked into the app repo, not executed
-      here): build with buildah, `skopeo copy` to Harbor, run conformance.
+- [x] CI workflow sketch (checked into the app repo, not executed
+      here): build with buildah, `skopeo copy` to the registry, run conformance.
       Add as a commented example under `packages/test-app/` or docs.
-      → `packages/test-app/forgejo-images.example.yml`
+      → `packages/test-app/ci-images.example.yml`
 - [ ] Coordinate with opensource-server: record the Harbor URL + CA expectations
       once the standalone cluster deploy lands (blocker for end-to-end testing;
       until then use a local Harbor via docker-compose or `skopeo copy` to
@@ -382,7 +384,7 @@ mieweb --target cloudflare deploy     # wrangler deploy: builds, pushes, rolls o
 mieweb --target local dev             # M1: boots; container binding throws UnsupportedBindingError on use
                                       # M4: skopeo-pulls image, docker-runs it, proxies getContainer().fetch()
 
-mieweb --target mieweb deploy         # M4: push to Harbor + start on the cluster's container host
+mieweb --target mieweb deploy         # M4: push to the registry + start on the cluster's container host
 ```
 
 Debugging (documented, not built — these are the underlying tools):
@@ -401,7 +403,7 @@ skopeo inspect docker://cr.os.mieweb.org/cloud-apps/jobrunner:latest
       target-support matrix (cloudflare ✅ / local ⏳ M4 / mieweb ⏳ M4).
 - [x] `packages/cli` README (create if absent): "Images" section — prerequisites
       (`brew install skopeo buildah`), the `mieweb images …` and
-      `mieweb registry …` commands, lockfile semantics, Harbor conventions
+      `mieweb registry …` commands, lockfile semantics, registry conventions
       (project/repo/tag naming from Milestone 3).
 - [x] `packages/cloud-types/src/index.ts` header table row + doc comments
       (part of M0, listed here for completeness).
