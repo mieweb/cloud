@@ -90,8 +90,8 @@ Two ways to close the gap in M4:
 2. **Propose a second realizer upstream** — a *service realizer* whose contract is
    *image + port + idle timeout → fetch handler*, alongside the sandbox realizer.
    Makes artipod genuinely canonical for both "run a command in a pod" and "host a
-   container service"; M4 becomes a thin consumer. Belongs as an issue on
-   `mieweb/artipod`, linked here once filed.
+   container service"; M4 becomes a thin consumer. Proposed upstream as
+   [mieweb/artipod#56](https://github.com/mieweb/artipod/issues/56).
 
 ### Other things to weigh
 
