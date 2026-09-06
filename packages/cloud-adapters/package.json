@@ -1,6 +1,6 @@
 {
   "name": "@mieweb/cloud-adapters",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Off-Cloudflare adapters for the @mieweb/cloud contracts, plus the Node host harness that runs the unchanged worker. `.`/`./local`: D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process, Vectorize→sqlite-vec. `./os` (os.mieweb.org / self-hosted): D1→libSQL, Vectorize→libSQL vectors, R2→S3/MinIO, KV+Queues→Valkey. Backend SDKs are optional peer dependencies — install only what your target needs.",
   "type": "module",
   "license": "MIT",
@@ -38,11 +38,21 @@
     "ioredis": "^5.4.1"
   },
   "peerDependenciesMeta": {
-    "better-sqlite3": { "optional": true },
-    "sqlite-vec": { "optional": true },
-    "@libsql/client": { "optional": true },
-    "@aws-sdk/client-s3": { "optional": true },
-    "ioredis": { "optional": true }
+    "better-sqlite3": {
+      "optional": true
+    },
+    "sqlite-vec": {
+      "optional": true
+    },
+    "@libsql/client": {
+      "optional": true
+    },
+    "@aws-sdk/client-s3": {
+      "optional": true
+    },
+    "ioredis": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "better-sqlite3": "^11.0.0",
