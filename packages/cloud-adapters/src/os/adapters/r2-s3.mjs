@@ -15,7 +15,7 @@
  *   accessKeyId?: string, secretAccessKey?: string,
  *   forcePathStyle?: boolean, createIfMissing?: boolean
  * }} cfg
- * @returns {Promise<import('@mieweb/cloud-local').LocalBucket>}
+ * @returns {Promise<import('../../index.mjs').LocalBucket>}
  */
 export async function createS3Bucket(cfg) {
   const s3 = await loadS3();

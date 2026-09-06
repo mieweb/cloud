@@ -1,7 +1,7 @@
 {
-  "name": "@mieweb/cloud-local",
+  "name": "@mieweb/cloud-adapters",
   "version": "0.1.0",
-  "description": "Local/Node adapters implementing the Cloudflare-shaped @mieweb/cloud contracts: D1→SQLite (better-sqlite3), R2→filesystem, KV→in-memory/Redis, Queues→in-process, Durable Objects→in-process registry. Vectorize/Workers AI surface explicit UnsupportedBindingError. Includes a Node host harness that runs the unchanged worker handler.",
+  "description": "Off-Cloudflare adapters for the @mieweb/cloud contracts, plus the Node host harness that runs the unchanged worker. `.`/`./local`: D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process, Vectorize→sqlite-vec. `./os` (os.mieweb.org / self-hosted): D1→libSQL, Vectorize→libSQL vectors, R2→S3/MinIO, KV+Queues→Valkey. Backend SDKs are optional peer dependencies — install only what your target needs.",
   "type": "module",
   "license": "MIT",
   "author": "MIEWEB",
@@ -10,35 +10,50 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mieweb/cloud.git",
-    "directory": "packages/cloud-local"
+    "directory": "packages/cloud-adapters"
   },
   "publishConfig": {
     "access": "public"
   },
   "exports": {
     ".": "./src/index.mjs",
+    "./local": "./src/index.mjs",
+    "./os": "./src/os/index.mjs",
     "./host": "./src/host.mjs",
     "./migrate": "./src/migrate.mjs"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down -v"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0"
   },
-  "optionalDependencies": {
+  "peerDependencies": {
     "better-sqlite3": "^11.0.0",
-    "sqlite-vec": "^0.1.6"
+    "sqlite-vec": "^0.1.6",
+    "@libsql/client": "^0.14.0",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "ioredis": "^5.4.1"
   },
   "peerDependenciesMeta": {
-    "better-sqlite3": {
-      "optional": true
-    },
-    "sqlite-vec": {
-      "optional": true
-    }
+    "better-sqlite3": { "optional": true },
+    "sqlite-vec": { "optional": true },
+    "@libsql/client": { "optional": true },
+    "@aws-sdk/client-s3": { "optional": true },
+    "ioredis": { "optional": true }
+  },
+  "devDependencies": {
+    "better-sqlite3": "^11.0.0",
+    "sqlite-vec": "^0.1.6",
+    "@libsql/client": "^0.14.0",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "ioredis": "^5.4.1"
   },
   "files": [
-    "src"
+    "src",
+    "docker-compose.yml",
+    "mieweb.sample.jsonc"
   ]
 }

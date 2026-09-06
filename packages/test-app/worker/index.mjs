@@ -6,8 +6,8 @@
  * on every target —
  *
  *   - cloudflare : `wrangler dev` (Miniflare) with native bindings
- *   - local      : the @mieweb/cloud-local Node host harness (SQLite/fs/memory/in-proc)
- *   - mieweb/os  : the @mieweb/cloud-os adapters (libSQL/S3/Valkey) over docker compose
+ *   - local      : the @mieweb/cloud-adapters Node host harness (SQLite/fs/memory/in-proc)
+ *   - mieweb/os  : the @mieweb/cloud-adapters/os drivers (libSQL/S3/Valkey) over docker compose
  *
  * Each route exercises exactly one binding so the shared HTTP assertions in
  * `test/surfaces.mjs` read like a contract checklist. Surfaces a given target

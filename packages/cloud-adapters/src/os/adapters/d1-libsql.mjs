@@ -10,7 +10,7 @@
  * .raw()`, `batch()` (atomic), and `exec()`.
  *
  * @param {{ url: string, authToken?: string }} cfg
- * @returns {Promise<import('@mieweb/cloud-local').LocalD1>}
+ * @returns {Promise<import('../../index.mjs').LocalD1>}
  */
 export async function createLibsqlD1(cfg) {
   const { createClient } = await loadLibsql();

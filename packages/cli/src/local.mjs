@@ -2,12 +2,12 @@ import { resolve } from 'node:path';
 
 /**
  * Dispatch a command on a Node "host" target (`local`, `mieweb`, …) through the
- * shared Node host harness in @mieweb/cloud-local.
+ * shared Node host harness in @mieweb/cloud-adapters.
  *
- *   * `local`  → @mieweb/cloud-local drivers (SQLite / fs / memory / in-proc).
- *   * `mieweb` → @mieweb/cloud-os drivers (libSQL / S3 / Valkey). Importing that
- *     package registers its drivers into the shared registry; the very same
- *     host harness then builds the env and runs the unchanged worker.
+ *   * `local`  → the built-in local drivers (SQLite / fs / memory / in-proc).
+ *   * `mieweb` → `@mieweb/cloud-adapters/os` drivers (libSQL / S3 / Valkey).
+ *     Importing that subpath registers its drivers into the shared registry; the
+ *     very same host harness then builds the env and runs the unchanged worker.
  *
  * Supported commands:
  *   * `mieweb [--target <t>] d1 migrations apply [db]`  (local / sqlite only)
@@ -21,10 +21,10 @@ import { resolve } from 'node:path';
  * @returns {Promise<number>} exit code
  */
 export async function runHostTarget(args, config) {
-  // Non-local host targets ship their drivers in a separate package; importing
-  // it is enough to register them into @mieweb/cloud-local's shared registry.
+  // Non-local host targets ship their drivers on a separate subpath; importing
+  // it is enough to register them into the shared driver registry.
   if (config.target === 'mieweb') {
-    await import('@mieweb/cloud-os');
+    await import('@mieweb/cloud-adapters/os');
   }
 
   const [cmd, ...rest] = args;
@@ -64,7 +64,7 @@ async function d1MigrationsApply(config) {
   );
   const dbPath = resolve(config.root, dbCfg.path);
 
-  const { applyMigrations } = await import('@mieweb/cloud-local/migrate');
+  const { applyMigrations } = await import('@mieweb/cloud-adapters/migrate');
   const { applied, skipped } = await applyMigrations({ dbPath, migrationsDir });
 
   console.log(
@@ -80,7 +80,7 @@ async function d1MigrationsApply(config) {
  * @param {import('./config.mjs').MiewebConfig} config
  */
 async function dev(config) {
-  const { startLocalHost } = await import('@mieweb/cloud-local/host');
+  const { startLocalHost } = await import('@mieweb/cloud-adapters/host');
   const handle = await startLocalHost({ config });
   // Keep the process alive until interrupted.
   return new Promise((resolvePromise) => {

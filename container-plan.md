@@ -160,10 +160,10 @@ runs `images push` by hand.
 
 ## Milestone 0 — Contract types (cheap, land now)
 
-Reserve the surface in `@mieweb/cloud-types` so app code can be written against it.
+Reserve the surface in `@mieweb/cloud` so app code can be written against it.
 
 - [x] Add `CloudContainerNamespace = DurableObjectNamespace` alias in
-      `packages/cloud-types/src/index.ts` (a Container binding *is* a DO namespace).
+      `packages/cloud/src/types.ts` (a Container binding *is* a DO namespace).
 - [x] Add `CloudContainerStub = DurableObjectStub` alias (what `getContainer()` returns).
 - [x] Document the row in the primitive table in the file header:
       `Containers | DO-controlled Linux container | CloudContainerNamespace`.
@@ -190,7 +190,7 @@ Teach the sidecar config and CLI that containers exist, without implementing the
 - [x] `mieweb --target local|mieweb dev`: on encountering a container-backed DO
       binding, wire `createUnsupportedBinding(name, target)` with a hint pointing
       at this plan ("container adapter not yet implemented").
-- [x] Sample config: extend `packages/cloud-os/mieweb.sample.jsonc` and
+- [x] Sample config: extend `packages/cloud-adapters/mieweb.sample.jsonc` and
       `packages/test-app/mieweb.jsonc` comments showing the reserved shape (commented out).
 
 ## Milestone 2 — skopeo image plumbing (cheap-ish, no runtime)
@@ -243,7 +243,7 @@ The cluster work lives in **opensource-server**; this repo only consumes it.
 
 Do **not** start until an app actually needs a container workload.
 
-- [ ] `packages/cloud-local/src/adapters/container-docker.mjs`: implement
+- [ ] `packages/cloud-adapters/src/adapters/container-docker.mjs`: implement
       `ctx.container` (start/stop/ports/monitor/signal) for the in-proc DO
       registry by driving a local Docker/Podman daemon; `sleepAfter` → idle
       timer → stop; `onStart`/`onStop`/`onError` hooks.
@@ -379,9 +379,9 @@ skopeo inspect docker://cr.os.mieweb.org/cloud-apps/jobrunner:latest
       (`brew install skopeo buildah`), the `mieweb images …` and
       `mieweb registry …` commands, lockfile semantics, registry conventions
       (project/repo/tag naming from Milestone 3).
-- [x] `packages/cloud-types/src/index.ts` header table row + doc comments
+- [x] `packages/cloud/src/types.ts` header table row + doc comments
       (part of M0, listed here for completeness).
-- [x] Sample configs (`packages/cloud-os/mieweb.sample.jsonc`,
+- [x] Sample configs (`packages/cloud-adapters/mieweb.sample.jsonc`,
       `packages/test-app/mieweb.jsonc`): commented-out registry + container
       binding blocks matching the example above.
 - [ ] "Debugging containers" subsection: the `wrangler containers ssh` /

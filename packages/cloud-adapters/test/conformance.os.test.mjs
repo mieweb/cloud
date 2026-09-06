@@ -1,12 +1,12 @@
-// Live conformance tests for the @mieweb/cloud-os adapters.
+// Live conformance tests for the @mieweb/cloud-adapters/os adapters.
 //
-// These run the SAME Cloudflare-shaped contracts as the cloud-local suite, but
+// These run the SAME Cloudflare-shaped contracts as the local suite, but
 // against real infrastructure (libSQL, MinIO, Valkey) brought up by the sibling
 // docker-compose.yml. They are the executable proof that the os target honors
 // the contracts the worker depends on.
 //
-//   pnpm --filter @mieweb/cloud-os infra:up   # start libSQL + MinIO + Valkey
-//   pnpm --filter @mieweb/cloud-os test
+//   pnpm --filter @mieweb/cloud-adapters infra:up   # start libSQL + MinIO + Valkey
+//   pnpm --filter @mieweb/cloud-adapters test
 //
 // If the infra isn't reachable, the suite self-skips rather than failing, so
 // `pnpm -r test` stays green without Docker.
@@ -22,7 +22,7 @@ import {
   createS3Bucket,
   createValkeyKV,
   createValkeyQueue,
-} from '../src/index.mjs';
+} from '../src/os/index.mjs';
 
 const LIBSQL_URL = process.env.MIEWEB_LIBSQL_URL ?? 'http://localhost:8080';
 const S3_ENDPOINT = process.env.MIEWEB_S3_ENDPOINT ?? 'http://localhost:9000';

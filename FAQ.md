@@ -31,8 +31,7 @@ framework**; `@mieweb/cloud` is a **runtime portability layer**.
   (live lambda, console, secrets, multi-stage).
 - SST supports Cloudflare, but as a *provisioning target*, not a compat layer —
   it won't emulate D1 on SQLite or KV on Valkey the way
-  [`@mieweb/cloud-local`](packages/cloud-local) and
-  [`@mieweb/cloud-os`](packages/cloud-os) do.
+  [`@mieweb/cloud-adapters`](packages/cloud-adapters) does.
 - They're not mutually exclusive: SST could provision AWS infrastructure while
   this layer's future AWS adapters keep the handler code Cloudflare-shaped.
 

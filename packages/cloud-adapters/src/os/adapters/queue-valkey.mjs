@@ -15,10 +15,10 @@ import { makeRedis } from './kv-valkey.mjs';
  * tests can call `_start()` / `_stop()` directly.
  *
  * @param {string} queueName
- * @param {() => import('@mieweb/cloud-local').QueueConsumer|undefined} getConsumer
+ * @param {() => import('../../index.mjs').QueueConsumer|undefined} getConsumer
  * @param {() => unknown} getEnv
  * @param {{ url?: string, host?: string, port?: number, namespace?: string, batchSize?: number, pollMs?: number }} cfg
- * @returns {Promise<import('@mieweb/cloud-local').LocalQueue & { _start: () => void, _stop: () => void, _close: () => Promise<void> }>}
+ * @returns {Promise<import('../../index.mjs').LocalQueue & { _start: () => void, _stop: () => void, _close: () => Promise<void> }>}
  */
 export async function createValkeyQueue(queueName, getConsumer, getEnv, cfg) {
   const client = await makeRedis(cfg);

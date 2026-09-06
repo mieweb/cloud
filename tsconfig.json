@@ -17,7 +17,8 @@
     "types": ["@cloudflare/workers-types", "node"],
     "baseUrl": ".",
     "paths": {
-      "mieweb:workers": ["./packages/cloud-workers/src/cloudflare.ts"]
+      "mieweb:workers": ["./packages/cloud/src/workers/cloudflare.ts"],
+      "@mieweb/cloud/workers": ["./packages/cloud/src/workers/cloudflare.ts"]
     }
   },
   "include": ["packages"],

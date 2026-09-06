@@ -1,5 +1,5 @@
 /**
- * Pure-JS fallback for `@mieweb/cloud-workers` used off Cloudflare (the
+ * Pure-JS fallback for `@mieweb/cloud/workers` used off Cloudflare (the
  * `default`/`node` export condition). This is the runtime entry that plain
  * `node` loads — the sibling `node.ts` carries the same shape with type
  * annotations for source consumers, and `index.d.ts` provides the public types.
@@ -7,7 +7,7 @@
  * It mirrors the shape of the `cloudflare:workers` base classes closely enough
  * for application code: the constructor stores `ctx` + `env` on the instance
  * exactly like Cloudflare's `DurableObject<Env>`. The host harness in
- * `@mieweb/cloud-local` constructs instances and supplies a `ctx` that
+ * `@mieweb/cloud-adapters` constructs instances and supplies a `ctx` that
  * implements the `DurableObjectState` surface the app actually uses (storage,
  * blockConcurrencyWhile, acceptWebSocket, ...).
  *
