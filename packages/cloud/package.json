@@ -1,7 +1,7 @@
 {
   "name": "@mieweb/cloud",
   "version": "0.1.0",
-  "description": "Umbrella entry for the @mieweb portability layer. Re-exports the portable platform-service contracts and the runtime-environment factory. Cloudflare remains the reference implementation; other targets implement the same contracts.",
+  "description": "The @mieweb portability layer: Cloudflare-shaped contracts (database, object storage, key/value, queues, stateful objects, vector index, AI, containers) plus the `mieweb:workers` DurableObject shim. Zero dependencies — on Cloudflare every type is an exact alias of the native binding and the shim re-exports `cloudflare:workers`. Adapters for other runtimes live in @mieweb/cloud-adapters.",
   "type": "module",
   "license": "MIT",
   "author": "MIEWEB",
@@ -19,11 +19,12 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./workers": {
+      "types": "./src/workers/index.d.ts",
+      "workerd": "./src/workers/cloudflare.ts",
+      "default": "./src/workers/node.mjs"
     }
-  },
-  "dependencies": {
-    "@mieweb/cloud-types": "workspace:*",
-    "@mieweb/cloud-workers": "workspace:*"
   },
   "files": [
     "src"

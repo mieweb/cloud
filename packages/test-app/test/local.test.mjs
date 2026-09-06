@@ -32,7 +32,7 @@ test('local target: all contract surfaces', async (t) => {
   rmSync(resolve(appDir, '.data/local'), { recursive: true, force: true });
 
   const config = loadConfig({ cwd: appDir, overrideTarget: 'local' });
-  const { startLocalHost } = await import('@mieweb/cloud-local/host');
+  const { startLocalHost } = await import('@mieweb/cloud-adapters/host');
   const handle = await startLocalHost({ config });
   const baseUrl = `http://127.0.0.1:${handle.port}`;
 

@@ -1,5 +1,5 @@
 /**
- * Type entry for `@mieweb/cloud-workers`.
+ * Type entry for `@mieweb/cloud/workers`.
  *
  * The canonical types are Cloudflare's. We re-export them so that, regardless
  * of which runtime implementation (`cloudflare.ts` / `node.ts`) is selected,

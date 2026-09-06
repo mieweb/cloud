@@ -14,11 +14,13 @@
   },
   "dependencies": {
     "@mieweb/cli": "workspace:*",
-    "@mieweb/cloud-local": "workspace:*",
-    "@mieweb/cloud-os": "workspace:*"
+    "@mieweb/cloud-adapters": "workspace:*"
   },
   "optionalDependencies": {
     "better-sqlite3": "^11.0.0",
-    "sqlite-vec": "^0.1.6"
+    "sqlite-vec": "^0.1.6",
+    "@libsql/client": "^0.14.0",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "ioredis": "^5.4.1"
   }
 }

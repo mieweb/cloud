@@ -26,7 +26,7 @@ import { runSurfaceChecks } from './surfaces.mjs';
 const harnessDir = dirname(fileURLToPath(import.meta.url));
 const appDir = resolve(harnessDir, '..');
 const cliPath = resolve(appDir, '../cli/src/index.mjs');
-const composeFile = resolve(appDir, '../cloud-os/docker-compose.yml');
+const composeFile = resolve(appDir, '../cloud-adapters/docker-compose.yml');
 const composeDir = dirname(composeFile);
 
 const PORTS = { local: 8801, mieweb: 8802, cf: 8803 };

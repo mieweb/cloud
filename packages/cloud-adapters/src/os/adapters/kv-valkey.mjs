@@ -8,7 +8,7 @@
  * TTLs map to Valkey key expiry, so eviction is the server's job.
  *
  * @param {{ url?: string, host?: string, port?: number, namespace?: string }} cfg
- * @returns {Promise<import('@mieweb/cloud-local').LocalKV & { _raw: any, _close: () => Promise<void> }>}
+ * @returns {Promise<import('../../index.mjs').LocalKV & { _raw: any, _close: () => Promise<void> }>}
  */
 export async function createValkeyKV(cfg) {
   const client = await makeRedis(cfg);

@@ -1,5 +1,5 @@
 # Local stand-in for the os.mieweb.org infrastructure the `mieweb` target
-# adapters expect. Brought up by `pnpm --filter @mieweb/cloud-os infra:up`
+# adapters expect. Brought up by `pnpm --filter @mieweb/cloud-adapters infra:up`
 # and exercised by the live conformance suite (test/conformance.os.test.mjs).
 #
 # These are dev defaults only — no auth on libSQL, well-known MinIO creds.

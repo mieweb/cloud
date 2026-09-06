@@ -1,4 +1,4 @@
-// Conformance tests for the @mieweb/cloud-local adapters.
+// Conformance tests for the @mieweb/cloud-adapters local adapters.
 //
 // These lock in the Cloudflare-shaped contracts every local driver must honor,
 // so the same worker handler runs unchanged off Cloudflare — and so future

@@ -1,5 +1,5 @@
 {
-  // Sample `mieweb` (os.mieweb.org) target block for the @mieweb/cloud-os
+  // Sample `mieweb` (os.mieweb.org) target block for the @mieweb/cloud-adapters/os
   // adapters. Copy the `targets.mieweb` block into a consuming app's
   // mieweb.jsonc (alongside its `targets.local`) and set `target` to "mieweb"
   // — or select it at runtime with `mieweb --target mieweb <cmd>`.
@@ -68,7 +68,7 @@
         // Vectorize → libSQL native vectors (same server as DB).
         "SEARCH_INDEX": { "driver": "libsql-vec", "url": "http://localhost:8080", "dim": 768 },
 
-        // Workers AI → local/hosted Ollama (reused from @mieweb/cloud-local).
+        // Workers AI → local/hosted Ollama (reused from the local adapters).
         "AI": {
           "driver": "ai",
           "backend": "ollama",

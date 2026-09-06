@@ -28,7 +28,7 @@
     },
 
     // ---- mieweb (os.mieweb.org): libSQL + S3/MinIO + Valkey ---------------
-    // Matches packages/cloud-os/docker-compose.yml. The test runner brings that
+    // Matches packages/cloud-adapters/docker-compose.yml. The test runner brings that
     // stack up before selecting this target.
     "mieweb": {
       "port": 8802,

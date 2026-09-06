@@ -101,7 +101,7 @@ async function main(argv) {
 
   // Node "host" targets run the unchanged worker via the host harness. `local`
   // uses the in-process adapters; `mieweb` (os.mieweb.org) uses the networked
-  // ones (libSQL/S3/Valkey), registered when local.mjs imports @mieweb/cloud-os.
+  // ones (libSQL/S3/Valkey), registered when local.mjs imports @mieweb/cloud-adapters/os.
   if (config.target === 'local' || config.target === 'mieweb') {
     return runHostTarget(args, config);
   }

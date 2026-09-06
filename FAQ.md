@@ -31,8 +31,7 @@ framework**; `@mieweb/cloud` is a **runtime portability layer**.
   (live lambda, console, secrets, multi-stage).
 - SST supports Cloudflare, but as a *provisioning target*, not a compat layer —
   it won't emulate D1 on SQLite or KV on Valkey the way
-  [`@mieweb/cloud-local`](packages/cloud-local) and
-  [`@mieweb/cloud-os`](packages/cloud-os) do.
+  [`@mieweb/cloud-adapters`](packages/cloud-adapters) does.
 - They're not mutually exclusive: SST could provision AWS infrastructure while
   this layer's future AWS adapters keep the handler code Cloudflare-shaped.
 
@@ -86,19 +85,21 @@ Aurora/S3/DynamoDB/SQS than to the CDN layer.)
 ## How does this relate to artipod?
 
 [artipod](https://github.com/mieweb/artipod) (`npx artipod`) is the mieweb
-ecosystem's **canonical OCI layer**: a content-addressed image store (a standard
-OCI image-layout directory on disk), registry transports, and pluggable
-"realizers" that attach execution — a bash isolate or a hardened Docker/Podman
-container — to stored state. Its model inverts Docker's: the writable workspace is
-the versioned, pushable artifact; the image is just a base.
+ecosystem's layer for **durable pod state and execution attached to that state**:
+a content-addressed OCI image store, registry transports, and "realizers" that run
+commands against a pod — a bash isolate or a hardened Docker/Podman container. Its
+model inverts Docker's: the writable workspace is the versioned, pushable artifact;
+the image is just a base.
 
-`@mieweb/cloud` is a *consumer* of that layer, not a competitor. For the
-Containers surface it uses artipod where artipod is good — storing, inspecting,
-pushing and pulling images, and driving a local container runtime — and keeps
-buildah/docker for the one thing artipod deliberately doesn't do: executing a
-Dockerfile. Today the CLI still shells out to skopeo for transport; the migration
-to `@artipod/core/oci`, and the semantic gap between artipod's sandbox realizer
-and a Cloudflare `Container` service, are worked through in
+The two projects share vocabulary (OCI, dockerode) but own different things, and
+that boundary was settled deliberately in
+[mieweb/artipod#56](https://github.com/mieweb/artipod/issues/56): artipod owns
+running commands against pod state; **`@mieweb/cloud` owns application-container
+lifecycle** — long-lived HTTP containers, Durable Object compatibility, routing,
+deployment policy. So the Containers surface here does *not* build on artipod:
+image distribution stays on skopeo, and the local/`mieweb` runtime adapter carries
+its own lifecycle. The reasoning — why a "run a command in a sandbox" realizer and
+a Cloudflare `Container` service have nearly inverse defaults — is in
 [container-plan.md → Relationship to artipod](container-plan.md#relationship-to-artipod).
 
 ## Can I use a different CI than Forgejo Actions?

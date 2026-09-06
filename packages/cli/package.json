@@ -30,8 +30,7 @@
     "mieweb": "./src/index.mjs"
   },
   "dependencies": {
-    "@mieweb/cloud-local": "workspace:*",
-    "@mieweb/cloud-os": "workspace:*"
+    "@mieweb/cloud-adapters": "workspace:*"
   },
   "files": [
     "src",

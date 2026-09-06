@@ -22,22 +22,22 @@ organizing principle:
 
 ## Packages
 
+Three packages, split by *what a consumer must install*, not by module:
+
 | Package | Role |
 | ------- | ---- |
-| [`@mieweb/cloud-types`](packages/cloud-types) | The portable contracts (`CloudDatabase`, `CloudBucket`, `CloudKV`, `CloudQueue`, `CloudStatefulNamespace`, `CloudVectorIndex`, `CloudAI`, `CloudContainerNamespace`) plus `UnsupportedBindingError`. On Cloudflare these are exact aliases of the native binding types. |
-| [`@mieweb/cloud-workers`](packages/cloud-workers) | The `DurableObject` base. Backs the **`mieweb:workers`** virtual import: re-exports `cloudflare:workers` on Cloudflare (workerd export condition), pure-JS base everywhere else. |
-| [`@mieweb/cloud`](packages/cloud) | Umbrella entry — re-exports the contracts + `DurableObject` from one stable import surface. |
-| [`@mieweb/cloud-local`](packages/cloud-local) | Local/Node **adapters**: D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process registry. Vectorize/Workers AI surface explicit `UnsupportedBindingError`. Includes a Node host harness + migration runner. |
-| [`@mieweb/cloud-os`](packages/cloud-os) | The **`mieweb`** (os.mieweb.org / self-hosted) **adapters**: D1→libSQL, Vectorize→libSQL native vectors, R2→S3/MinIO, KV+Queues→Valkey. Durable Objects stay single-node. Ships a `docker-compose.yml` for the backing services. |
+| [`@mieweb/cloud`](packages/cloud) | **Zero dependencies.** The portable contracts (`CloudDatabase`, `CloudBucket`, `CloudKV`, `CloudQueue`, `CloudStatefulNamespace`, `CloudVectorIndex`, `CloudAI`, `CloudContainerNamespace`, `UnsupportedBindingError`) and, at `@mieweb/cloud/workers`, the `DurableObject` base behind the **`mieweb:workers`** import — re-exports `cloudflare:workers` on Cloudflare (workerd export condition), pure-JS base everywhere else. This is the only package a Cloudflare app touches. |
+| [`@mieweb/cloud-adapters`](packages/cloud-adapters) | Off-Cloudflare **adapters** + the Node host harness and migration runner. `./local`: D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process, Vectorize→sqlite-vec. `./os` (os.mieweb.org / self-hosted): D1→libSQL, Vectorize→libSQL vectors, R2→S3/MinIO, KV+Queues→Valkey; ships a `docker-compose.yml`. Backend SDKs are **optional peers** — install only what your target needs. |
 | [`@mieweb/cli`](packages/cli) | The **`mieweb`** CLI. On the `cloudflare` target it delegates verbatim to `wrangler`; on the `local`/`mieweb` targets it runs the matching adapter via the Node host harness. |
-| [`@mieweb/test-app`](packages/test-app) | A tiny worker that exercises **every** contract surface over plain HTTP, plus a cross-target runner. The same worker + the same assertions prove the layer on `cloudflare`, `local`, and `mieweb`. See [Try it](#try-it-the-test-app). |
+| [`@mieweb/test-app`](packages/test-app) *(private)* | A tiny worker that exercises **every** contract surface over plain HTTP, plus a cross-target runner. The same worker + the same assertions prove the layer on `cloudflare`, `local`, and `mieweb`. See [Try it](#try-it-the-test-app). |
 
 ## How a consuming app wires it in
 
 - `import { DurableObject } from 'mieweb:workers'` resolves via three coordinated
   aliases — `tsconfig.json` `paths` (typecheck), `wrangler.jsonc` `alias`
-  (Cloudflare build), and the `@mieweb/cloud-workers` package `exports`
-  conditions (runtime).
+  (Cloudflare build), and the `@mieweb/cloud/workers` `exports` conditions
+  (runtime). `mieweb init` writes the first two; they're an implementation
+  detail you never edit.
 - `wrangler.jsonc` stays the source of truth for bindings/migrations/queues/DO
   tags. A small `mieweb.jsonc` sidecar adds only a `target` + non-Cloudflare
   adapter hints.
@@ -102,7 +102,7 @@ Vectorize/AI without credentials), so one suite stays green everywhere. The
 
 Cloudflare **Containers** (DO-controlled Linux containers) are a reserved
 surface of the contract: `CloudContainerNamespace` / `CloudContainerStub` in
-`@mieweb/cloud-types`. App code uses the stock Cloudflare shape — a
+`@mieweb/cloud`. App code uses the stock Cloudflare shape — a
 `class MyContainer extends Container` (from `@cloudflare/containers`) paired
 with a `containers` entry + DO binding in `wrangler.jsonc` — and stays
 target-agnostic.

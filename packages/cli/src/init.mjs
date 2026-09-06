@@ -102,7 +102,8 @@ function packageJson(name) {
           deploy: 'mieweb deploy',
         },
         devDependencies: {
-          '@mieweb/cli': '^0.1.0',
+          '@mieweb/cli': '^0.2.0',
+          '@mieweb/cloud': '^0.2.0',
         },
       },
       null,
@@ -121,6 +122,11 @@ function wranglerJsonc(name) {
   "main": "worker/index.mjs",
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
+
+  // \`import { DurableObject } from 'mieweb:workers'\` → the real
+  // \`cloudflare:workers\` here, a pure-JS base on other targets. Owned by the
+  // layer; leave as-is.
+  "alias": { "mieweb:workers": "@mieweb/cloud/workers" },
 
   // A starter D1 + KV binding. Add R2/Queues/Durable Objects/Vectorize/AI as
   // you need them — every contract surface is portable across targets.
@@ -151,7 +157,7 @@ function miewebJsonc() {
     },
 
     // mieweb (os.mieweb.org): libSQL + Valkey. Bring the backing services up
-    // with the docker-compose.yml from @mieweb/cloud-os.
+    // with the docker-compose.yml from @mieweb/cloud-adapters.
     "mieweb": {
       "port": 8787,
       "bindings": {

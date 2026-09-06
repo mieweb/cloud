@@ -1,4 +1,4 @@
-import { matchesFilter } from '@mieweb/cloud-local';
+import { matchesFilter } from '../../adapters/meta-filter.mjs';
 
 /**
  * Vectorize → libSQL native vectors (os.mieweb.org target).
@@ -14,7 +14,7 @@ import { matchesFilter } from '@mieweb/cloud-local';
  * `libsql_vector_idx` ANN index can be added later behind the same contract.)
  *
  * @param {{ url: string, authToken?: string, dim?: number, table?: string }} cfg
- * @returns {Promise<import('@mieweb/cloud-local').LocalVectorIndex>}
+ * @returns {Promise<import('../../index.mjs').LocalVectorIndex>}
  */
 export async function createLibsqlVecIndex(cfg) {
   const { createClient } = await loadLibsql();

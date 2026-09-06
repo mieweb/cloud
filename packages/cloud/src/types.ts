@@ -1,12 +1,12 @@
 /**
- * `@mieweb/cloud-types` — the stable, portable contract for the platform
+ * `@mieweb/cloud` — the stable, portable contract for the platform
  * services this application depends on.
  *
  * Design bias: **compatibility over purity.** On Cloudflare (the reference
  * implementation) every `Cloud*` type below is an exact alias of the native
  * binding type, so the existing `Env` interface and all call sites keep
  * compiling and behaving identically with zero changes. Non-Cloudflare
- * adapters (`@mieweb/cloud-local`, future AWS/GCP/os.mieweb.org) implement the
+ * adapters (`@mieweb/cloud-adapters`, future AWS/GCP) implement the
  * same Cloudflare-shaped contract.
  *
  * These aliases reference the ambient types from `@cloudflare/workers-types`

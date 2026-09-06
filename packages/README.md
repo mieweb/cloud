@@ -16,17 +16,16 @@ implement the same Cloudflare-shaped contract.
 
 | Package | Role |
 | ------- | ---- |
-| [`cloud-types`](cloud-types) | The portable contracts (`CloudDatabase`, `CloudBucket`, `CloudKV`, `CloudQueue`, `CloudStatefulNamespace`, `CloudVectorIndex`, `CloudAI`, `CloudContainerNamespace`) plus `UnsupportedBindingError`. On Cloudflare these are exact aliases of the native binding types, so `worker/env.ts` keeps compiling unchanged. |
-| [`cloud-workers`](cloud-workers) | The `DurableObject` base. Backs the **`mieweb:workers`** virtual import: re-exports `cloudflare:workers` on Cloudflare (workerd export condition), pure-JS base everywhere else. |
-| [`cloud`](cloud) | Umbrella entry. Re-exports the contracts + `DurableObject` from one stable import surface (`@mieweb/cloud`). |
-| [`cloud-local`](cloud-local) | Local/Node **adapters** (the POC): D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process registry. Vectorize/Workers AI surface explicit `UnsupportedBindingError`. Includes the Node **host harness** that runs the unchanged worker handler and a migration runner. |
+| [`cloud`](cloud) | **Zero dependencies.** The portable contracts (`CloudDatabase`, `CloudBucket`, `CloudKV`, `CloudQueue`, `CloudStatefulNamespace`, `CloudVectorIndex`, `CloudAI`, `CloudContainerNamespace`, `UnsupportedBindingError`) and, at `@mieweb/cloud/workers`, the `DurableObject` base behind the **`mieweb:workers`** import (re-exports `cloudflare:workers` on workerd, pure-JS base elsewhere). The only package a Cloudflare app touches. |
+| [`cloud-adapters`](cloud-adapters) | Off-Cloudflare **adapters** + the Node **host harness** and migration runner. `./local`: D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process. `./os`: libSQL, S3/MinIO, Valkey. Backend SDKs are optional peers. |
 | [`cli`](cli) | The **`mieweb`** CLI. On the `cloudflare` target it delegates verbatim to `wrangler`; on other targets it drives the matching adapter. |
+| [`test-app`](test-app) *(private)* | Exercises every contract surface across all targets. |
 
 ## How it wires into the app
 
 - `import { DurableObject } from 'mieweb:workers'` resolves via three coordinated
   aliases — `tsconfig.json` `paths` (typecheck), `wrangler.jsonc` `alias`
-  (Cloudflare build), and the `@mieweb/cloud-workers` package `exports`
+  (Cloudflare build), and the `@mieweb/cloud/workers` `exports`
   conditions (runtime).
 - `wrangler.jsonc` stays the source of truth for bindings/migrations/queues/DO
   tags. `mieweb.jsonc` is a small sidecar that adds only a `target` + non-CF

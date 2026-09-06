@@ -1,5 +1,5 @@
 /**
- * @mieweb/cloud-os — adapters for the `mieweb` (os.mieweb.org) target.
+ * @mieweb/cloud-adapters/os — adapters for the `mieweb` (os.mieweb.org) target.
  *
  * These implement the same Cloudflare-shaped @mieweb/cloud contracts as the
  * local adapters, but over durable, networked infrastructure:
@@ -11,16 +11,16 @@
  *   | R2        | `s3`            | S3-compatible (MinIO/S3)       |
  *   | KV        | `valkey`        | Valkey/Redis                  |
  *   | Queues    | `valkey-queue`  | Valkey/Redis (list + zset)    |
- *   | AI        | `ai`            | reused from @mieweb/cloud-local (Ollama) |
+ *   | AI        | `ai`            | reused from the local adapters (Ollama) |
  *   | DO        | `inproc`        | reused — single-node best-effort |
  *
- * Drivers register into the shared registry from @mieweb/cloud-local, so
+ * Drivers register into the shared driver registry, so
  * `createCloudEnv` dispatches `mieweb`-target bindings to them with no core
  * changes. Importing this module is enough to register them; `register()` is
  * exported for explicitness and is idempotent.
  */
 
-import { registerDriver } from '@mieweb/cloud-local';
+import { registerDriver } from '../registry.mjs';
 import { createLibsqlD1 } from './adapters/d1-libsql.mjs';
 import { createLibsqlVecIndex } from './adapters/vectorize-libsql.mjs';
 import { createS3Bucket } from './adapters/r2-s3.mjs';
@@ -35,7 +35,7 @@ export { createValkeyQueue } from './adapters/queue-valkey.mjs';
 
 let registered = false;
 
-/** Register the os drivers into the @mieweb/cloud-local registry (idempotent). */
+/** Register the os drivers into the shared registry (idempotent). */
 export function register() {
   if (registered) return;
   registered = true;
