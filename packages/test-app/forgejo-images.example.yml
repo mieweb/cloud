@@ -1,0 +1,47 @@
+# Forgejo Actions workflow *sketch* for an app consuming @mieweb/cloud with
+# containers (container-plan.md Milestone 3). Not executed in this repo —
+# copy into a consuming app as .forgejo/workflows/images.yml once the
+# opensource-server cluster (Forgejo + a registry at cr.os.mieweb.org) is up.
+#
+# Identity: a registry robot account (robot$<project>+ci) stored as the
+# REGISTRY_ROBOT_* secrets. Images are built with buildah (rootless, no daemon)
+# and moved with skopeo — same pipeline as `mieweb images push` locally.
+
+name: images
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: docker # a runner image with: node+pnpm, buildah, skopeo, git
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to the registry (writes the authfile skopeo/mieweb use)
+        run: |
+          skopeo login \
+            --username "${{ secrets.REGISTRY_ROBOT_USER }}" \
+            --password-stdin \
+            --authfile "$RUNNER_TEMP/registry-auth.json" \
+            cr.os.mieweb.org <<< "${{ secrets.REGISTRY_ROBOT_TOKEN }}"
+
+      - name: Build + push (skopeo copy, digest-pinned)
+        env:
+          # mieweb.jsonc's registry.authFile can point at this via env override,
+          # or set targets.mieweb.registry.authFile to the same path.
+          MIEWEB_TARGET: mieweb
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec mieweb images push --target mieweb
+
+      - name: Conformance against the pushed image (once M4 lands)
+        run: pnpm exec mieweb --target mieweb test || true # placeholder
+
+      - name: Commit the digest lockfile bump
+        run: |
+          git config user.name forgejo-actions
+          git config user.email actions@os.mieweb.org
+          git add .mieweb/images.lock.json
+          git diff --cached --quiet || git commit -m "ci: pin container image digests"
+          git push

@@ -118,8 +118,8 @@ image pipeline, and the `myapp` walkthrough.
 
 ## Status
 
-Proof-of-concept. Consumed today as a git submodule; npm / Deno / Bun
-distribution is planned. Cloudflare is fully supported; the `local` Node target
+**0.x — published to npm as `@mieweb/*`; the API may change between minor
+versions.** Cloudflare is fully supported; the `local` Node target
 and the `mieweb` (os.mieweb.org) target both cover D1, R2, KV, Queues, Durable
 Objects, and Vectorize, with Workers AI available when a model backend is
 configured. Every target is exercised by the [test app](#try-it-the-test-app)

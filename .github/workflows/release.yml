@@ -7,7 +7,11 @@
 #     the tarballs to npm (via `pnpm release` → `changeset publish`) and pushes
 #     the git tags.
 #
-# Requires an `NPM_TOKEN` repo secret with publish rights to the @mieweb scope.
+# Publishing uses npm **trusted publishing** (OIDC via `id-token: write`) — no
+# NPM_TOKEN secret. Each @mieweb/* package must list this repo + this workflow
+# file as a trusted publisher on npmjs.com (Package → Settings → Trusted
+# Publisher: owner `mieweb`, repo `cloud`, workflow `release.yml`).
+# npm >= 11.5 is required for OIDC publish; setup-node's bundled npm may lag.
 name: Release
 
 on:
@@ -39,6 +43,9 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
+      # OIDC trusted publishing needs a recent npm regardless of Node version.
+      - run: npm install -g npm@latest
+
       - run: pnpm install --frozen-lockfile
 
       # Typecheck + unit tests gate the release, same as CI.
@@ -54,5 +61,3 @@ jobs:
           title: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
