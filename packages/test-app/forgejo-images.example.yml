@@ -1,10 +1,10 @@
 # Forgejo Actions workflow *sketch* for an app consuming @mieweb/cloud with
 # containers (container-plan.md Milestone 3). Not executed in this repo —
 # copy into a consuming app as .forgejo/workflows/images.yml once the
-# opensource-server cluster (Forgejo + Harbor) is up.
+# opensource-server cluster (Forgejo + a registry at cr.os.mieweb.org) is up.
 #
-# Identity: a Harbor robot account (robot$<project>+ci) stored as the
-# HARBOR_ROBOT_* secrets. Images are built with buildah (rootless, no daemon)
+# Identity: a registry robot account (robot$<project>+ci) stored as the
+# REGISTRY_ROBOT_* secrets. Images are built with buildah (rootless, no daemon)
 # and moved with skopeo — same pipeline as `mieweb images push` locally.
 
 name: images
@@ -18,13 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to Harbor (writes the authfile skopeo/mieweb use)
+      - name: Login to the registry (writes the authfile skopeo/mieweb use)
         run: |
           skopeo login \
-            --username "${{ secrets.HARBOR_ROBOT_USER }}" \
+            --username "${{ secrets.REGISTRY_ROBOT_USER }}" \
             --password-stdin \
-            --authfile "$RUNNER_TEMP/harbor-auth.json" \
-            harbor.os.mieweb.org <<< "${{ secrets.HARBOR_ROBOT_TOKEN }}"
+            --authfile "$RUNNER_TEMP/registry-auth.json" \
+            cr.os.mieweb.org <<< "${{ secrets.REGISTRY_ROBOT_TOKEN }}"
 
       - name: Build + push (skopeo copy, digest-pinned)
         env:

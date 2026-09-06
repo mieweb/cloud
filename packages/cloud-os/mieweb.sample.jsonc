@@ -16,10 +16,10 @@
       // Cloudflare Containers (reserved — see container-plan.md): where
       // `mieweb images push --target mieweb` skopeo-copies images to.
       // "registry": {
-      //   "url": "harbor.os.mieweb.org",
+      //   "url": "cr.os.mieweb.org",
       //   "project": "cloud-apps",
       //   "username": "robot$cloud-apps+ci",
-      //   "authFile": "~/.config/mieweb/harbor-auth.json"
+      //   "authFile": "~/.config/mieweb/registry-auth.json"
       // },
       "bindings": {
         // D1 → libSQL/sqld (SQLite-compatible: keeps FTS5). Migrations apply

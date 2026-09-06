@@ -30,10 +30,10 @@ and the per-target `registry` block in `mieweb.jsonc`:
   "targets": {
     "mieweb": {
       "registry": {
-        "url": "harbor.os.mieweb.org",
+        "url": "cr.os.mieweb.org",
         "project": "cloud-apps",
         "username": "robot$cloud-apps+ci",
-        "authFile": "~/.config/mieweb/harbor-auth.json"
+        "authFile": "~/.config/mieweb/registry-auth.json"
       }
     }
   }

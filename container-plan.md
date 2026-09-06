@@ -17,11 +17,14 @@ non-Cloudflare runtime, which we defer.
   The intended successor for the transport/store half is `@artipod/core/oci`; see
   [Relationship to artipod](#relationship-to-artipod). Dockerfile *builds* stay on
   buildah/docker either way.
-- **Harbor + Forgejo live in the opensource-server standalone cluster.** The
-  `mieweb` target's registry endpoint is Harbor; Forgejo Actions is the eventual
-  CI that builds + skopeo-copies images. This plan only reserves the config
-  surface for that (registry URL + creds in `mieweb.jsonc` targets block); the
-  cluster deploy itself is tracked in opensource-server, not here.
+- **The `mieweb` target's registry is an abstract endpoint.** Config and docs use
+  `cr.os.mieweb.org` ("container registry") and never name the product; today
+  that is Harbor running in the opensource-server standalone cluster, with Forgejo
+  Actions as the eventual CI that builds + skopeo-copies images. Anything
+  OCI-distribution-compliant can replace it without touching app configs. This
+  plan only reserves the config surface (registry URL + creds in `mieweb.jsonc`
+  targets block); the cluster deploy itself is tracked in opensource-server, not
+  here.
 - **Fail-loudly first.** Until a real adapter exists, non-Cloudflare targets
   surface `UnsupportedBindingError` through the existing
   `createUnsupportedBinding` proxy — same pattern as Vectorize/AI on `local`.
@@ -328,10 +331,10 @@ export default {
   "targets": {
     "mieweb": {
       "registry": {
-        "url": "harbor.os.mieweb.org",
+        "url": "cr.os.mieweb.org",
         "project": "cloud-apps",
         "username": "robot$cloud-apps+ci",
-        "authFile": "~/.config/mieweb/harbor-auth.json"
+        "authFile": "~/.config/mieweb/registry-auth.json"
       },
       "bindings": { "JOB_RUNNER": { "driver": "docker" } } // M4; "unsupported" until then
     }
@@ -351,7 +354,7 @@ mieweb images build
 # Build + skopeo-copy to the active target's registry, pin digest in
 # .mieweb/images.lock.json. On --target cloudflare this delegates to
 # `wrangler containers push` instead of skopeo.
-mieweb images push --target mieweb          # → docker://harbor.os.mieweb.org/cloud-apps/jobrunner:<sha>
+mieweb images push --target mieweb          # → docker://cr.os.mieweb.org/cloud-apps/jobrunner:<sha>
 mieweb images push --target cloudflare     # → wrangler containers push
 
 # Inspect what a target would run (skopeo inspect; shows digest, layers, arch).
@@ -365,7 +368,7 @@ Registry auth (Milestone 3 — thin wrappers over skopeo's auth, never store
 secrets in mieweb.jsonc committed files):
 
 ```sh
-mieweb registry login --target mieweb       # → skopeo login harbor.os.mieweb.org (writes authFile)
+mieweb registry login --target mieweb       # → skopeo login cr.os.mieweb.org (writes authFile)
 mieweb registry logout --target mieweb
 ```
 
@@ -388,7 +391,7 @@ Debugging (documented, not built — these are the underlying tools):
 wrangler containers list                              # live CF instances
 wrangler containers ssh <class>                       # shell into a running CF container instance
 docker exec -it mieweb-jobrunner-session-42 sh        # local-target instance (M4 naming convention)
-skopeo inspect docker://harbor.os.mieweb.org/cloud-apps/jobrunner:latest
+skopeo inspect docker://cr.os.mieweb.org/cloud-apps/jobrunner:latest
 ```
 
 ### Documentation checklist
