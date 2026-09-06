@@ -28,7 +28,7 @@
     "infra:down": "docker compose down -v"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.0"
+    "@hono/node-server": "^2.0.10"
   },
   "peerDependencies": {
     "better-sqlite3": "^13.0.0",
