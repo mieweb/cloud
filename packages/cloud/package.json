@@ -1,6 +1,6 @@
 {
   "name": "@mieweb/cloud",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "The @mieweb portability layer: Cloudflare-shaped contracts (database, object storage, key/value, queues, stateful objects, vector index, AI, containers) plus the `mieweb:workers` DurableObject shim. Zero dependencies — on Cloudflare every type is an exact alias of the native binding and the shim re-exports `cloudflare:workers`. Adapters for other runtimes live in @mieweb/cloud-adapters.",
   "type": "module",
   "license": "MIT",

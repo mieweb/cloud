@@ -1,5 +1,13 @@
 # @mieweb/cloud-adapters
 
+## 0.2.1
+
+### Patch Changes
+
+- 22d50b4: Bump the optional `better-sqlite3` peer to ^13 so the `local` target's D1 and
+  Vectorize adapters work on Node 24 (11.x aborted with
+  `Assertion failed: (env) != nullptr` during GC). Verified on Node 22 and 24.
+
 ## 0.2.0
 
 ### Minor Changes
