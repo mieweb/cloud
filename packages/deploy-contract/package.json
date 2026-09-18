@@ -1,0 +1,35 @@
+{
+  "name": "@mieweb/deploy-contract",
+  "version": "0.2.1",
+  "description": "The @mieweb deploy-provider contract: a minimal, provider-agnostic TypeScript interface (`DeployProvider`) that @mieweb/cli consumes and deploy backends implement. Cloudflare/wrangler is the reference provider (@mieweb/deploy-wrangler); opensource-server (os.mieweb.org) is another. Zero dependencies — types plus a small conformance test-kit. No wrangler.jsonc field names, no backend API shapes, and no `mieweb+<driver>:` ID grammar leak into the contract; those are provider implementation details.",
+  "type": "module",
+  "license": "MIT",
+  "author": "MIEWEB",
+  "homepage": "https://github.com/mieweb/cloud#readme",
+  "bugs": "https://github.com/mieweb/cloud/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mieweb/cloud.git",
+    "directory": "packages/deploy-contract"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.mjs"
+    },
+    "./testkit": {
+      "types": "./src/testkit.d.ts",
+      "default": "./src/testkit.mjs"
+    },
+    "./jsonc": {
+      "types": "./src/jsonc.d.ts",
+      "default": "./src/jsonc.mjs"
+    }
+  },
+  "files": [
+    "src"
+  ]
+}
