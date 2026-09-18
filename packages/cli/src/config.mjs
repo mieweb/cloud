@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, resolve, isAbsolute } from 'node:path';
-import { parseJsonc } from './jsonc.mjs';
+import { parseJsonc } from '@mieweb/deploy-contract/jsonc';
 
 /**
  * @typedef {'cloudflare'|'local'|'mieweb'|'aws'|'gcp'} CloudTarget
