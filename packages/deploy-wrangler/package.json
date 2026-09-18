@@ -1,0 +1,41 @@
+{
+  "name": "@mieweb/deploy-wrangler",
+  "version": "0.2.1",
+  "description": "The Cloudflare reference implementation of the @mieweb/deploy-contract `DeployProvider`. Wraps the real `wrangler` binary: `deploy`/`dev`/`tail` delegate verbatim so Cloudflare behavior is identical, and resource handles are read back from the wrangler.jsonc manifest. This is the canonical provider every other deploy backend (opensource-server, future AWS/GCP) is measured against via the contract's conformance test-kit.",
+  "type": "module",
+  "license": "MIT",
+  "author": "MIEWEB",
+  "homepage": "https://github.com/mieweb/cloud#readme",
+  "bugs": "https://github.com/mieweb/cloud/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mieweb/cloud.git",
+    "directory": "packages/deploy-wrangler"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@mieweb/deploy-contract": "workspace:*"
+  },
+  "peerDependencies": {
+    "wrangler": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "wrangler": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "wrangler": ">=3"
+  },
+  "files": [
+    "src"
+  ]
+}
