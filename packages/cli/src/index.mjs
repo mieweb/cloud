@@ -7,11 +7,14 @@
  *   mieweb tail
  *   mieweb d1 migrations apply bluehive-hum
  *
- * On the `cloudflare` target (the default) every command is forwarded
- * verbatim to the real `wrangler` binary, so Cloudflare behavior is identical
- * and nothing about the existing workflow changes. Select another environment
- * with `--target <t>` or `MIEWEB_TARGET=<t>`; those commands are handled by the
- * matching @mieweb adapter instead.
+ * On the `cloudflare` target (the default) most commands are forwarded verbatim
+ * to the real `wrangler` binary. The deploy lifecycle verbs (`deploy`, `dev`,
+ * `tail`, plus `login`/`logout`/`whoami`/`destroy`) instead run through a
+ * pluggable deploy provider (`@mieweb/deploy-contract`); the Cloudflare
+ * reference provider still drives `wrangler` underneath, adding config
+ * injection, structured logging, resource reporting, and auth-aware errors.
+ * Select another environment with `--target <t>` or `MIEWEB_TARGET=<t>`; those
+ * commands are handled by the matching @mieweb adapter/provider instead.
  *
  * This file is plain ESM JavaScript on purpose so `mieweb` runs with bare
  * `node` — no build step, no transpiler, no extra runtime dependency.
@@ -23,6 +26,10 @@ import { delegateToWrangler } from './cloudflare.mjs';
 import { runHostTarget } from './local.mjs';
 import { runInit } from './init.mjs';
 import { runImagesCommand, runRegistryCommand } from './images.mjs';
+import { resolveProvider, runProviderVerb } from './provider.mjs';
+
+/** Verbs handled by the deploy-contract provider layer. */
+const PROVIDER_VERBS = new Set(['deploy', 'dev', 'tail', 'login', 'logout', 'whoami', 'destroy']);
 
 /** Read this CLI's version from its package.json. */
 function miewebVersion() {
@@ -94,8 +101,32 @@ async function main(argv) {
     });
   }
 
+  // Deploy-contract verbs route through a DeployProvider when one resolves for
+  // the active target: deploy, dev, tail, login, logout, whoami, destroy (see
+  // PROVIDER_VERBS). Cloudflare resolves to the wrangler reference provider;
+  // other targets can name a provider package in mieweb.jsonc
+  // (`targets[t].provider`). Everything else (d1 migrations, etc.) and any
+  // target without a provider falls through to the legacy paths below.
+  if (PROVIDER_VERBS.has(args[0])) {
+    let provider = null;
+    try {
+      provider = await resolveProvider(config);
+    } catch (err) {
+      console.error(`mieweb: ${err?.message ?? err}`);
+      return 1;
+    }
+    if (provider) {
+      return runProviderVerb(
+        /** @type {'deploy'|'dev'|'tail'|'login'|'logout'|'whoami'|'destroy'} */ (args[0]),
+        provider,
+        config,
+        args.slice(1),
+      );
+    }
+  }
+
   if (config.target === 'cloudflare') {
-    // Reference path: hand everything to wrangler untouched.
+    // Reference path for non-provider commands: hand to wrangler untouched.
     return delegateToWrangler(args, { cwd: config.root });
   }
 
@@ -128,9 +159,12 @@ function printHelp() {
       '',
       'Common commands:',
       '  mieweb init [dir]                   Scaffold a new mieweb project.',
+      "  mieweb login                        Authenticate the active target's provider.",
+      "  mieweb logout                       Clear the provider's stored session.",
+      "  mieweb whoami                       Show the provider's auth status.",
       '  mieweb dev                          Start a dev server for the active target.',
-      '  mieweb deploy                       Deploy (cloudflare only).',
-      '  mieweb tail                         Stream logs (cloudflare only).',
+      "  mieweb deploy                       Deploy via the active target's provider.",
+      '  mieweb tail                         Stream logs from the deployed worker.',
       '  mieweb d1 migrations apply <db>     Apply ./migrations to the target DB.',
       '  mieweb images build|push|inspect|status   Build & skopeo-push container images.',
       '  mieweb registry login|logout        skopeo login to the target registry.',
