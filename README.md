@@ -22,13 +22,15 @@ organizing principle:
 
 ## Packages
 
-Three packages, split by *what a consumer must install*, not by module:
+Packages, split by *what a consumer must install*, not by module:
 
 | Package | Role |
 | ------- | ---- |
 | [`@mieweb/cloud`](packages/cloud) | **Zero dependencies.** The portable contracts (`CloudDatabase`, `CloudBucket`, `CloudKV`, `CloudQueue`, `CloudStatefulNamespace`, `CloudVectorIndex`, `CloudAI`, `CloudContainerNamespace`, `UnsupportedBindingError`) and, at `@mieweb/cloud/workers`, the `DurableObject` base behind the **`mieweb:workers`** import — re-exports `cloudflare:workers` on Cloudflare (workerd export condition), pure-JS base everywhere else. This is the only package a Cloudflare app touches. |
 | [`@mieweb/cloud-adapters`](packages/cloud-adapters) | Off-Cloudflare **adapters** + the Node host harness and migration runner. `./local`: D1→SQLite, R2→filesystem, KV→in-memory, Queues→in-process, Durable Objects→in-process, Vectorize→sqlite-vec. `./os` (os.mieweb.org / self-hosted): D1→libSQL, Vectorize→libSQL vectors, R2→S3/MinIO, KV+Queues→Valkey; ships a `docker-compose.yml`. Backend SDKs are **optional peers** — install only what your target needs. |
-| [`@mieweb/cli`](packages/cli) | The **`mieweb`** CLI. On the `cloudflare` target it delegates verbatim to `wrangler`; on the `local`/`mieweb` targets it runs the matching adapter via the Node host harness. |
+| [`@mieweb/cli`](packages/cli) | The **`mieweb`** CLI. On the `cloudflare` target most commands delegate to `wrangler`; the deploy lifecycle verbs (`deploy`/`dev`/`tail`, plus `login`/`logout`/`whoami`/`destroy`) run through a deploy provider (below). On the `local`/`mieweb` targets it runs the matching adapter via the Node host harness. |
+| [`@mieweb/deploy-contract`](packages/deploy-contract) | **Zero dependencies.** The provider-agnostic control-plane contract: the `DeployProvider` interface (+ `AuthError`, `RESOURCE_KINDS`), a `./jsonc` parser, and a `./testkit` conformance suite. The CLI consumes it; deploy backends implement it. |
+| [`@mieweb/deploy-wrangler`](packages/deploy-wrangler) | The **Cloudflare reference** `DeployProvider` — wraps the `wrangler` binary (an optional peer). The canonical implementation other providers (opensource-server, future AWS/GCP) are measured against via the test-kit. |
 | [`@mieweb/test-app`](packages/test-app) *(private)* | A tiny worker that exercises **every** contract surface over plain HTTP, plus a cross-target runner. The same worker + the same assertions prove the layer on `cloudflare`, `local`, and `mieweb`. See [Try it](#try-it-the-test-app). |
 
 ## How a consuming app wires it in
@@ -47,16 +49,23 @@ Three packages, split by *what a consumer must install*, not by module:
 ## Using the `mieweb` CLI
 
 What the CLI *is* depends on where you point it. **If you're targeting
-Cloudflare (or already know `wrangler`), think of it as a thin pass-through:**
-every command is forwarded verbatim to `wrangler`, so there's nothing new to
-learn and zero overhead. **On the other targets it is not a wrapper** — there is
-no `wrangler` underneath; the CLI runs your unchanged worker on a Node host
-harness backed by the adapters, reusing your `wrangler.jsonc` purely as
-configuration. The active target comes from `--target <t>`, `MIEWEB_TARGET`, or
-the `target` field in `mieweb.jsonc` (default `cloudflare`).
+Cloudflare (or already know `wrangler`), think of it as a near pass-through:**
+most commands are forwarded verbatim to `wrangler`, and the deploy lifecycle
+verbs (`deploy`/`dev`/`tail`, plus `login`/`logout`/`whoami`/`destroy`) run
+through a pluggable deploy provider whose Cloudflare reference implementation
+still drives `wrangler` underneath — so behavior matches `wrangler` with a thin
+layer of structured logging, resource reporting, and auth-aware errors on top.
+**On the built-in `local`/`mieweb` targets it is not a wrapper** — there is no
+`wrangler` underneath; the CLI runs your unchanged worker on a Node host harness
+backed by the adapters, reusing your `wrangler.jsonc` purely as configuration.
+(A custom target that sets `targets[t].provider` instead routes the provider
+verbs through that provider, not the host harness.) The active target comes from
+`--target <t>`, `MIEWEB_TARGET`, or the `target` field in `mieweb.jsonc`
+(default `cloudflare`).
 
 ```sh
-# cloudflare (default): every command is forwarded verbatim to wrangler
+# cloudflare (default): commands run via wrangler (deploy/dev/tail through the
+# wrangler reference deploy provider, others forwarded verbatim)
 mieweb dev
 mieweb deploy
 mieweb d1 migrations apply <db>
@@ -69,7 +78,8 @@ mieweb --target local dev
 mieweb --target mieweb dev
 ```
 
-On `cloudflare`, behavior is identical to `wrangler` (zero overhead). On the
+On `cloudflare`, behavior tracks `wrangler` (the deploy provider drives it
+directly). On the
 `local`/`mieweb` targets the CLI imports the worker your `wrangler.jsonc` `main`
 points at, builds an `Env` from the `mieweb.jsonc` driver hints, and serves
 `fetch`/`queue`/`scheduled` over HTTP — the same handler Cloudflare runs.
