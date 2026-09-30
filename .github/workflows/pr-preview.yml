@@ -1,0 +1,86 @@
+# PR preview packages.
+#
+# On every push to a same-repo pull request, publish every public @mieweb/*
+# workspace package to the GitHub Packages npm registry (npm.pkg.github.com)
+# as `<version>-pr<PR>.<run>` under the dist-tag `pr<PR>`. This lets
+# cross-repo PRs depend on each other with ordinary semver references while
+# they are in review, e.g.
+#
+#   "@mieweb/deploy-contract": "0.2.1-pr14.3"
+#
+# plus, in the consumer, an .npmrc line:
+#
+#   @mieweb:registry=https://npm.pkg.github.com
+#
+# Once the PRs merge, the real versions go to npmjs via release.yml and the
+# consumers drop the .npmrc line and switch to the released version.
+#
+# Installing from GitHub Packages needs a token with `read:packages`, even for
+# public packages.
+name: PR preview packages
+
+on:
+  pull_request:
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    # GITHUB_TOKEN is read-only on fork PRs.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@mieweb'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Stamp preview versions
+        id: stamp
+        env:
+          SUFFIX: pr${{ github.event.pull_request.number }}.${{ github.run_number }}
+        run: |
+          node -e '
+            const fs = require("fs"), path = require("path");
+            const out = [];
+            for (const dir of fs.readdirSync("packages")) {
+              const f = path.join("packages", dir, "package.json");
+              if (!fs.existsSync(f)) continue;
+              const p = JSON.parse(fs.readFileSync(f, "utf8"));
+              if (p.private) continue;
+              p.version = `${p.version.replace(/-.*$/, "")}-${process.env.SUFFIX}`;
+              fs.writeFileSync(f, JSON.stringify(p, null, 2) + "\n");
+              out.push(`${p.name}@${p.version}`);
+            }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `packages=${out.join(" ")}\n`);
+          '
+
+      # pnpm rewrites workspace:* to the stamped versions and runs prepack.
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm -r publish --no-git-checks --tag pr${{ github.event.pull_request.number }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### Preview packages (npm.pkg.github.com)"
+            echo
+            echo "Add \`@mieweb:registry=https://npm.pkg.github.com\` to .npmrc, then:"
+            echo
+            for p in ${{ steps.stamp.outputs.packages }}; do echo "- \`$p\`"; done
+          } >> "$GITHUB_STEP_SUMMARY"
