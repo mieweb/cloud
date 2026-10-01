@@ -36,8 +36,8 @@ importers:
         specifier: workspace:*
         version: link:../deploy-wrangler
       '@mieweb/os-cloud-provider':
-        specifier: 0.1.0-pr484.2
-        version: 0.1.0-pr484.2
+        specifier: 0.1.0-pr484.3
+        version: 0.1.0-pr484.3
       import-meta-resolve:
         specifier: ^4.2.0
         version: 4.2.0
@@ -347,11 +347,11 @@ packages:
   '@manypkg/get-packages@1.1.3':
     resolution: {integrity: sha512-fo+QhuU3qE/2TQMQmbVMqaQ6EWbMhi4ABWP+O4AM1NqPBuy0OrApV5LO6BrrgnhtAHS2NH6RrVk9OL181tTi8A==}
 
-  '@mieweb/deploy-contract@0.2.1-pr14.1':
-    resolution: {integrity: sha512-SGTx/dmgLc+9vb3k/ilOqORa7VBlf3MiMmoaHkgvGLR4CHYkbdFPaYBfvLtnFfaqLD9Mta2E5kOHmAFkvGBCkA==, tarball: https://npm.pkg.github.com/download/@mieweb/deploy-contract/0.2.1-pr14.1/653c8e1927998f1779a2d334558d79f8389fb2a7}
+  '@mieweb/deploy-contract@0.2.1-pr14.5':
+    resolution: {integrity: sha512-OgTpvGm8iUp0JKjsr1k9kIVsjSMzmJbr5VXNA+QNDXen6ItKOhR9fe/D2T9SzrFyO/0+qbLenz5yT0CUAr9AEA==, tarball: https://npm.pkg.github.com/download/@mieweb/deploy-contract/0.2.1-pr14.5/18d12fabb58f4b7350f4b0065ed3fd46f716d6fc}
 
-  '@mieweb/os-cloud-provider@0.1.0-pr484.2':
-    resolution: {integrity: sha512-+XzyyWbz3sK3ohL7X5afgQSmQsDP2/Xotz5D7Oe0BF/r93U68dNVIMCCLrQlOsvPyFClaE6oxNgjbisV9XCKJQ==, tarball: https://npm.pkg.github.com/download/@mieweb/os-cloud-provider/0.1.0-pr484.2/54936b09eec4adbcb19f6c3b9573b964f143f45b}
+  '@mieweb/os-cloud-provider@0.1.0-pr484.3':
+    resolution: {integrity: sha512-OnE6a3WKxpTjgEUFfWMrOTxgkWfK54LMnUCTWZWQXK23paniWlpdDlTQLVNxq3UAji35u5BigIsyPNg2XkjxZw==, tarball: https://npm.pkg.github.com/download/@mieweb/os-cloud-provider/0.1.0-pr484.3/3a55f79e809b8e5af4b75337453c8d98fadbdd80}
     engines: {node: '>=22.18'}
 
   '@neon-rs/load@0.0.4':
@@ -1419,11 +1419,11 @@ snapshots:
       globby: 11.1.0
       read-yaml-file: 1.1.0
 
-  '@mieweb/deploy-contract@0.2.1-pr14.1': {}
+  '@mieweb/deploy-contract@0.2.1-pr14.5': {}
 
-  '@mieweb/os-cloud-provider@0.1.0-pr484.2':
+  '@mieweb/os-cloud-provider@0.1.0-pr484.3':
     dependencies:
-      '@mieweb/deploy-contract': 0.2.1-pr14.1
+      '@mieweb/deploy-contract': 0.2.1-pr14.5
       ignore: 7.0.12
       ssh2: 1.17.0
       tar-stream: 3.2.2
