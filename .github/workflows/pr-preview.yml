@@ -48,6 +48,9 @@ jobs:
           scope: '@mieweb'
 
       - run: pnpm install --frozen-lockfile
+        env:
+          # PREVIEW: @mieweb/os-cloud-provider comes from GitHub Packages (.npmrc).
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Stamp preview versions
         id: stamp

@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -32,7 +33,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@mieweb'
       - run: pnpm install --frozen-lockfile
+        env:
+          # PREVIEW: @mieweb/os-cloud-provider comes from GitHub Packages (.npmrc).
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: pnpm typecheck
       - run: pnpm -r test
 
@@ -48,6 +54,11 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@mieweb'
       - run: pnpm install --frozen-lockfile
+        env:
+          # PREVIEW: @mieweb/os-cloud-provider comes from GitHub Packages (.npmrc).
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run contract surfaces on local + docker (cf auto-skips)
         run: node packages/test-app/harness/run.mjs --target all
