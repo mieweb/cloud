@@ -2,7 +2,8 @@
 import { pathToFileURL } from 'node:url';
 import { resolve, join, isAbsolute } from 'node:path';
 import { createRequire } from 'node:module';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { applyEdits, modify } from 'jsonc-parser';
 
 /**
  * Provider selection + context construction for the mieweb CLI.
@@ -269,6 +270,7 @@ export function buildContext(config, argv) {
       error: (m) => process.stderr.write(`[mieweb] ERROR ${m}\n`),
     },
     signal: controller.signal,
+    persistTargetConfig: (patch) => persistTargetConfig(config, patch, context.logger),
   };
 
   const dispose = () => {
@@ -452,4 +454,40 @@ function unsupported(provider, verb) {
  */
 export function providerImplements(provider, verb) {
   return typeof (/** @type {Record<string, unknown>} */ (/** @type {unknown} */ (provider)))[verb] === 'function';
+}
+
+/**
+ * `DeployContext.persistTargetConfig`: write non-secret settings a provider
+ * resolved interactively into `mieweb.jsonc` → `targets[target]`, keeping
+ * comments and formatting. Creates mieweb.jsonc in the project root if absent.
+ *
+ * @param {MiewebConfig} config
+ * @param {Readonly<Record<string, unknown>>} patch
+ * @param {DeployContext['logger']} logger
+ * @returns {Promise<boolean>} whether the file changed
+ */
+export async function persistTargetConfig(config, patch, logger) {
+  const entries = Object.entries(patch ?? {});
+  for (const [k] of entries) {
+    if (SECRETISH_KEY.test(k) || DATA_PLANE_KEYS.has(k)) {
+      throw new Error(`refusing to write "${k}" to mieweb.jsonc: secrets belong in the environment`);
+    }
+  }
+  if (entries.length === 0) return false;
+
+  const file = config.configPath && config.configPath.endsWith('mieweb.jsonc')
+    ? config.configPath
+    : join(config.root, 'mieweb.jsonc');
+  const before = existsSync(file) ? readFileSync(file, 'utf8') : '{}\n';
+  const fmt = { formattingOptions: { insertSpaces: true, tabSize: 2, eol: '\n' } };
+  let text = before;
+  for (const [k, v] of entries) {
+    text = applyEdits(text, modify(text, ['targets', config.target, k], v, fmt));
+  }
+  if (text === before) return false;
+  writeFileSync(file, text);
+  logger.info(
+    `Saved ${entries.map(([k, v]) => `targets.${config.target}.${k} = ${JSON.stringify(v)}`).join(', ')} to ${file}`,
+  );
+  return true;
 }

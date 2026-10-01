@@ -38,6 +38,9 @@ importers:
       '@mieweb/os-cloud-provider':
         specifier: 0.1.0-pr484.2
         version: 0.1.0-pr484.2
+      jsonc-parser:
+        specifier: ^3.3.1
+        version: 3.3.1
 
   packages/cloud: {}
 
@@ -1017,6 +1020,9 @@ packages:
   js-yaml@4.3.2:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
     hasBin: true
+
+  jsonc-parser@3.3.1:
+    resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
 
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
@@ -2323,6 +2329,8 @@ snapshots:
   js-yaml@4.3.2:
     dependencies:
       argparse: 2.0.1
+
+  jsonc-parser@3.3.1: {}
 
   jsonfile@4.0.0:
     optionalDependencies:
