@@ -21,6 +21,7 @@ mieweb_preview_activate() {
   _MWP_OLD_USERCONFIG="${NPM_CONFIG_USERCONFIG-__unset__}"
   _MWP_OLD_CACHE="${npm_config_cache-__unset__}"
   _MWP_OLD_URL="${MIEWEB_OS_URL-__unset__}"
+  _MWP_OLD_NAT="${NODE_AUTH_TOKEN-__unset__}"
   _MWP_OLD_TOKEN="${MIEWEB_OS_TOKEN-__unset__}"
   _MWP_OLD_PS1="${PS1-}"
 
@@ -32,6 +33,9 @@ mieweb_preview_activate() {
   export NPM_CONFIG_USERCONFIG="$_MWP_DIR/npmrc"
   export npm_config_cache="$_MWP_DIR/npm-cache"   # isolated npx cache, removed on deactivate
   export MIEWEB_OS_URL="$url"
+  # Lets a project .npmrc use `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`
+  # (the same line works inside the deployed container; see the PR description).
+  export NODE_AUTH_TOKEN="$tok"
   if [ -z "${MIEWEB_OS_TOKEN:-}" ]; then
     printf 'Manager API key for %s (blank to skip): ' "$url"
     read -rs MIEWEB_OS_TOKEN; echo
@@ -50,10 +54,11 @@ mieweb_preview_deactivate() {
   _mwp_restore NPM_CONFIG_USERCONFIG "$_MWP_OLD_USERCONFIG"
   _mwp_restore npm_config_cache "$_MWP_OLD_CACHE"
   _mwp_restore MIEWEB_OS_URL "$_MWP_OLD_URL"
+  _mwp_restore NODE_AUTH_TOKEN "$_MWP_OLD_NAT"
   _mwp_restore MIEWEB_OS_TOKEN "$_MWP_OLD_TOKEN"
   PS1="$_MWP_OLD_PS1"
   case "$_MWP_DIR" in "${TMPDIR:-/tmp}"/mieweb-preview.*) rm -rf -- "$_MWP_DIR" ;; esac
   unset -f mieweb _mwp_restore
-  unset _MWP_ACTIVE _MWP_PR _MWP_DIR _MWP_OLD_USERCONFIG _MWP_OLD_CACHE _MWP_OLD_URL _MWP_OLD_TOKEN _MWP_OLD_PS1
+  unset _MWP_ACTIVE _MWP_PR _MWP_DIR _MWP_OLD_USERCONFIG _MWP_OLD_CACHE _MWP_OLD_URL _MWP_OLD_NAT _MWP_OLD_TOKEN _MWP_OLD_PS1
   echo "mieweb preview deactivated"
 }
