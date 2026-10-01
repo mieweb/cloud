@@ -36,8 +36,8 @@ importers:
         specifier: workspace:*
         version: link:../deploy-wrangler
       '@mieweb/os-cloud-provider':
-        specifier: 0.1.0-pr484.1
-        version: 0.1.0-pr484.1
+        specifier: 0.1.0-pr484.2
+        version: 0.1.0-pr484.2
       import-meta-resolve:
         specifier: ^4.2.0
         version: 4.2.0
@@ -350,8 +350,8 @@ packages:
   '@mieweb/deploy-contract@0.2.1-pr14.1':
     resolution: {integrity: sha512-SGTx/dmgLc+9vb3k/ilOqORa7VBlf3MiMmoaHkgvGLR4CHYkbdFPaYBfvLtnFfaqLD9Mta2E5kOHmAFkvGBCkA==, tarball: https://npm.pkg.github.com/download/@mieweb/deploy-contract/0.2.1-pr14.1/653c8e1927998f1779a2d334558d79f8389fb2a7}
 
-  '@mieweb/os-cloud-provider@0.1.0-pr484.1':
-    resolution: {integrity: sha512-Pq1Z1awM0Jq3OWon6zOrVdXgHA9G1xPnVvoIu5BIFHJKXI9Gri8HPjrKDqrSVDKvjjrv3h2WEwtn2jjj+HgoDA==, tarball: https://npm.pkg.github.com/download/@mieweb/os-cloud-provider/0.1.0-pr484.1/10635d2e6d63955ee8b449a6d8f8fcdbce4adc02}
+  '@mieweb/os-cloud-provider@0.1.0-pr484.2':
+    resolution: {integrity: sha512-+XzyyWbz3sK3ohL7X5afgQSmQsDP2/Xotz5D7Oe0BF/r93U68dNVIMCCLrQlOsvPyFClaE6oxNgjbisV9XCKJQ==, tarball: https://npm.pkg.github.com/download/@mieweb/os-cloud-provider/0.1.0-pr484.2/54936b09eec4adbcb19f6c3b9573b964f143f45b}
     engines: {node: '>=22.18'}
 
   '@neon-rs/load@0.0.4':
@@ -1421,7 +1421,7 @@ snapshots:
 
   '@mieweb/deploy-contract@0.2.1-pr14.1': {}
 
-  '@mieweb/os-cloud-provider@0.1.0-pr484.1':
+  '@mieweb/os-cloud-provider@0.1.0-pr484.2':
     dependencies:
       '@mieweb/deploy-contract': 0.2.1-pr14.1
       ignore: 7.0.12

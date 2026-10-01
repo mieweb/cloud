@@ -33,7 +33,7 @@
     "@mieweb/cloud-adapters": "workspace:*",
     "@mieweb/deploy-contract": "workspace:*",
     "@mieweb/deploy-wrangler": "workspace:*",
-    "@mieweb/os-cloud-provider": "0.1.0-pr484.1",
+    "@mieweb/os-cloud-provider": "0.1.0-pr484.2",
     "import-meta-resolve": "^4.2.0",
     "jsonc-parser": "^3.3.1"
   },
