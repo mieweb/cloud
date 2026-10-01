@@ -124,6 +124,17 @@ export interface DeployContext {
    * timeout fires; long-running providers should observe it and abort promptly.
    */
   readonly signal: AbortSignal;
+
+  /**
+   * Persist non-secret settings the provider resolved interactively (e.g. a
+   * site the user picked) into `mieweb.jsonc` → `targets[target]`, so the next
+   * run doesn't ask again. Values must be JSON-serializable; the host keeps
+   * comments/formatting and refuses secret-looking keys (credentials stay in the
+   * environment, see {@link targetConfig}). Resolves to whether anything was
+   * written. Optional: hosts without a writable config omit it, so providers
+   * must call it as `ctx.persistTargetConfig?.(patch)`.
+   */
+  readonly persistTargetConfig?: (patch: Readonly<Record<string, unknown>>) => Promise<boolean>;
 }
 
 /** Re-export of the canonical runtime kinds list (single source of truth). */
