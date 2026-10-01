@@ -21,7 +21,7 @@
         "type": "object",
         "properties": {
           "runtime": { "type": "string" },
-          "provider": { "type": "string", "description": "Deploy provider for this target: a package name or path to a module exporting a DeployProvider (@mieweb/deploy-contract). Cloudflare defaults to the wrangler reference provider; a custom provider may serve a custom target name." },
+          "provider": { "type": "string", "description": "Deploy provider for this target: a package name or path to a module exporting a DeployProvider (@mieweb/deploy-contract). Defaults: cloudflare → @mieweb/deploy-wrangler, mieweb → @mieweb/os-cloud-provider. Verbs the provider does not implement fall back to the CLI's legacy path; a custom provider may serve a custom target name." },
           "port": { "type": "number" },
           "registry": {
             "type": "object",
