@@ -11,8 +11,8 @@
     },
     "target": {
       "type": "string",
-      "enum": ["cloudflare", "local", "mieweb", "aws", "gcp"],
-      "description": "Default deployment target when none is given via --target or MIEWEB_TARGET."
+      "examples": ["cloudflare", "local", "mieweb", "aws", "gcp"],
+      "description": "Default deployment target when none is given via --target or MIEWEB_TARGET. The built-ins are cloudflare/local/mieweb (aws/gcp reserved); custom deploy providers may introduce their own target names (see targets.<t>.provider), so any string is accepted."
     },
     "targets": {
       "type": "object",
@@ -21,6 +21,7 @@
         "type": "object",
         "properties": {
           "runtime": { "type": "string" },
+          "provider": { "type": "string", "description": "Deploy provider for this target: a package name or path to a module exporting a DeployProvider (@mieweb/deploy-contract). Cloudflare defaults to the wrangler reference provider; a custom provider may serve a custom target name." },
           "port": { "type": "number" },
           "registry": {
             "type": "object",

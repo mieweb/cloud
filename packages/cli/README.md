@@ -1,9 +1,15 @@
 # `@mieweb/cli` — the `mieweb` command
 
 Target-aware wrapper over `wrangler`. On the `cloudflare` target (default)
-every command is forwarded verbatim to `wrangler`; on `local`/`mieweb` the CLI
-runs your unchanged worker on the Node host harness backed by the matching
-adapters. See the [root README](../../README.md) for the full model.
+most commands are forwarded verbatim to `wrangler`; the deploy lifecycle verbs
+(`deploy`, `dev`, `tail`, plus `login`/`logout`/`whoami`, and `destroy`) go
+through a pluggable **deploy provider** (`@mieweb/deploy-contract`) whose
+Cloudflare reference implementation still delegates to `wrangler` — adding
+structured logging, resource reporting, and auth-aware error handling around it.
+On the built-in `local`/`mieweb` targets the CLI runs your unchanged worker on
+the Node host harness backed by the matching adapters (a custom target with
+`targets[t].provider` routes provider verbs through that provider instead). See
+the [root README](../../README.md) for the full model.
 
 ```sh
 mieweb [--target <cloudflare|local|mieweb>] <command> [...args]
