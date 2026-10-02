@@ -86,7 +86,8 @@ export async function startLocalHost({ config }) {
   }
 
   // 3. Serve fetch over HTTP.
-  const port = targetConfig.port ?? wrangler?.dev?.port ?? 8787;
+  // $PORT wins: hosts like the os.mieweb.org cloud image assign the port.
+  const port = Number(process.env.PORT) || (targetConfig.port ?? wrangler?.dev?.port ?? 8787);
   const { serve } = await import('@hono/node-server');
   const ctx = makeExecutionContext();
 
