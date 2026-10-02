@@ -6,11 +6,11 @@ most commands are forwarded verbatim to `wrangler`; the deploy lifecycle verbs
 through a pluggable **deploy provider** (`@mieweb/deploy-contract`) whose
 Cloudflare reference implementation still delegates to `wrangler` — adding
 structured logging, resource reporting, and auth-aware error handling around it.
-On the `mieweb` target (os.mieweb.org) `deploy`, `destroy`, `login`, `logout`
-and `whoami` go through the bundled opensource-server provider
+On the `mieweb` target (os.mieweb.org) `deploy`, `destroy`, `tail`, `login`,
+`logout` and `whoami` go through the bundled opensource-server provider
 (`@mieweb/os-cloud-provider`; configure `targets.mieweb.siteId` /
 `instanceUrl`, auth via `MIEWEB_OS_TOKEN`). Verbs a provider doesn't implement
-(`dev`, `tail` on `mieweb`) fall back to the Node host harness, which also runs
+(`dev` on `mieweb`) fall back to the Node host harness, which also runs
 everything on `local`. Any target can override its provider with
 `targets[t].provider`. See
 the [root README](../../README.md) for the full model.

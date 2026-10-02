@@ -11,8 +11,8 @@ test('mieweb target resolves the built-in opensource-server provider', async () 
 
 test('verbs the provider lacks fall back to the legacy path', async () => {
   const p = await resolveProvider({ target: 'mieweb', root: '/', targetConfig: {} });
-  for (const v of ['deploy', 'destroy', 'whoami', 'login', 'logout']) assert.ok(providerImplements(p, v), v);
-  for (const v of ['dev', 'tail']) assert.equal(providerImplements(p, v), false, v);
+  for (const v of ['deploy', 'destroy', 'tail', 'whoami', 'login', 'logout']) assert.ok(providerImplements(p, v), v);
+  for (const v of ['dev']) assert.equal(providerImplements(p, v), false, v);
 });
 
 test('persistTargetConfig writes into mieweb.jsonc, keeping comments; refuses secrets', async () => {
