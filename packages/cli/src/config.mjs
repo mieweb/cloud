@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, resolve, isAbsolute } from 'node:path';
-import { parseJsonc } from '@mieweb/deploy-contract/jsonc';
+import { parseJsonc } from './jsonc.mjs';
 
 /**
  * @typedef {'cloudflare'|'local'|'mieweb'|'aws'|'gcp'} CloudTarget
@@ -37,7 +37,7 @@ export function loadConfig(opts = {}) {
   /** @type {Record<string, any>} */
   let raw = {};
   if (miewebPath && existsSync(miewebPath)) {
-    raw = /** @type {Record<string, any>} */ (parseJsonc(readFileSync(miewebPath, 'utf8')));
+    raw = /** @type {Record<string, any>} */ (parseJsonc(readFileSync(miewebPath, 'utf8'), miewebPath));
   }
 
   const wranglerRel = typeof raw.wrangler === 'string' ? raw.wrangler : './wrangler.jsonc';
@@ -45,7 +45,7 @@ export function loadConfig(opts = {}) {
   /** @type {Record<string, unknown>} */
   let wrangler = {};
   if (existsSync(wranglerPath)) {
-    wrangler = /** @type {Record<string, unknown>} */ (parseJsonc(readFileSync(wranglerPath, 'utf8')));
+    wrangler = /** @type {Record<string, unknown>} */ (parseJsonc(readFileSync(wranglerPath, 'utf8'), wranglerPath));
   }
 
   const target = /** @type {CloudTarget} */ (

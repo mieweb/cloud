@@ -22,7 +22,8 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@mieweb/deploy-contract": "workspace:*"
+    "@mieweb/deploy-contract": "workspace:*",
+    "jsonc-parser": "^3.3.1"
   },
   "peerDependencies": {
     "wrangler": ">=3"
