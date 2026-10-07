@@ -26,17 +26,27 @@ concurrency:
   group: pr-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+# Two jobs so PR-controlled code never runs with a write token: `pack` installs,
+# stamps and packs (read-only token; lifecycle scripts run here), and `publish`
+# only uploads the resulting tarballs with --ignore-scripts. It never checks out
+# or executes the PR's code.
 permissions:
   contents: read
-  packages: write
 
 jobs:
-  publish:
-    # GITHUB_TOKEN is read-only on fork PRs.
+  pack:
+    # Same-repo branches only (fork PRs can't publish anyway).
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      packages: ${{ steps.stamp.outputs.packages }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
 
@@ -48,6 +58,8 @@ jobs:
           scope: '@mieweb'
 
       - run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Stamp preview versions
         id: stamp
@@ -69,18 +81,56 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `packages=${out.join(" ")}\n`);
           '
 
-      # pnpm rewrites workspace:* to the stamped versions and runs prepack.
+      # pnpm pack rewrites workspace:* to the stamped versions and runs prepack.
+      - name: Pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/tarballs"
+          for d in packages/*/; do
+            [ "$(node -p "require('./${d}package.json').private === true")" = true ] && continue
+            (cd "$d" && pnpm pack --pack-destination "$RUNNER_TEMP/tarballs")
+          done
+          ls "$RUNNER_TEMP/tarballs"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tarballs
+          path: ${{ runner.temp }}/tarballs/*.tgz
+          retention-days: 1
+
+  publish:
+    needs: pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: tarballs
+          path: tarballs
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          scope: '@mieweb'
+
       - name: Publish to GitHub Packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm -r publish --no-git-checks --tag pr${{ github.event.pull_request.number }}
+        run: |
+          for t in tarballs/*.tgz; do
+            npm publish "$t" --ignore-scripts --tag pr${{ github.event.pull_request.number }}
+          done
 
       - name: Summary
+        env:
+          PACKAGES: ${{ needs.pack.outputs.packages }}
         run: |
           {
             echo "### Preview packages (npm.pkg.github.com)"
             echo
             echo "Add \`@mieweb:registry=https://npm.pkg.github.com\` to .npmrc, then:"
             echo
-            for p in ${{ steps.stamp.outputs.packages }}; do echo "- \`$p\`"; done
+            for p in $PACKAGES; do echo "- \`$p\`"; done
           } >> "$GITHUB_STEP_SUMMARY"
