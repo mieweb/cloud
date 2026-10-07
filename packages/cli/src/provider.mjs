@@ -1,6 +1,7 @@
 // @ts-check
 import { pathToFileURL } from 'node:url';
 import { resolve, join, isAbsolute } from 'node:path';
+import { createRequire } from 'node:module';
 import { resolve as resolveFrom } from 'import-meta-resolve';
 import { existsSync } from 'node:fs';
 
@@ -54,7 +55,9 @@ const BUILTIN_PROVIDERS = {
  * @returns {DeployProvider}
  */
 function toProvider(mod, specifier) {
-  if (typeof mod.createProvider === 'function') return mod.createProvider(process.env);
+  // A CommonJS provider's `module.exports` arrives as `default`.
+  const factory = mod.createProvider ?? /** @type {any} */ (mod.default)?.createProvider;
+  if (typeof factory === 'function') return factory(process.env);
   if (mod.default && typeof mod.default.deploy === 'function') return mod.default;
   throw new Error(
     `provider "${specifier}" does not export a DeployProvider ` +
@@ -94,16 +97,21 @@ export async function resolveProvider(config) {
     // `C:\...`) → use as-is. `resolve` handles both correctly.
     importable = pathToFileURL(resolve(config.root, specifier)).href;
   } else {
-    // Bare package specifier: resolve from the *project's* module graph
-    // (honoring the `import` condition, so ESM-only providers work), not the
-    // CLI's own. Built-in providers are CLI dependencies, so if the project
-    // doesn't have them, fall back to resolving from here.
+    // Bare package specifier: resolve from the *project's* module graph, not
+    // the CLI's own. ESM resolution first (`import` condition, so ESM-only
+    // providers work), then CommonJS resolution (`require`-only providers).
+    // Built-in providers are CLI dependencies, so if the project doesn't have
+    // them, fall back to resolving from here.
     // (`import.meta.resolve`'s parent argument needs an experimental flag.)
     const parentUrl = pathToFileURL(join(config.root, 'package.json')).href;
     try {
       importable = resolveFrom(specifier, parentUrl);
     } catch {
-      importable = specifier;
+      try {
+        importable = pathToFileURL(createRequire(parentUrl).resolve(specifier)).href;
+      } catch {
+        importable = specifier;
+      }
     }
   }
 
