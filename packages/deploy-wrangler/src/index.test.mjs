@@ -64,6 +64,21 @@ test('conformance kit rejects a bogus ResourceKind (live)', async () => {
   );
 });
 
+test('conformance kit does not deploy when the provider fails the structural checks', async () => {
+  let deployed = false;
+  const wrongTarget = {
+    name: 'wrong-target',
+    supports: () => false,
+    async deploy() {
+      deployed = true;
+      return { resources: [] };
+    },
+  };
+  const report = await runProviderConformance(wrongTarget, { target: 'cloudflare', manifest: {}, live: true });
+  assert.equal(deployed, false);
+  assert.ok(report.failures.some((f) => /supports/.test(f.name)));
+});
+
 /* ------------------------------------------------------------------ *
  * Hermetic fake-wrangler coverage for the reference provider's actual
  * subprocess paths (deploy/argv/reload/resource-extraction, auth mapping,

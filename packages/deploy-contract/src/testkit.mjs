@@ -86,7 +86,8 @@ function validateResult(result) {
  *   2. `supports(target)` returns true for the configured target.
  *   3. `deploy` is a function.
  *
- * Behavioral checks (only when `live: true`, since they invoke the backend):
+ * Behavioral checks (only when `live: true` and the structural checks passed,
+ * since they invoke the backend):
  *   4. `deploy` resolves to a well-formed {@link DeployResult}.
  *   5. Handle stability: deploying the same context again returns the same
  *      {binding, kind, id} handles. (The kit can't observe whether the backend
@@ -109,7 +110,10 @@ export async function runProviderConformance(provider, opts) {
   );
   record('provider.deploy is a function', typeof provider.deploy === 'function');
 
-  if (opts.live) {
+  // Only deploy for real once the provider has passed the structural checks
+  // (e.g. it actually supports this target), so a misconfigured provider can't
+  // cause side effects.
+  if (opts.live && checks.every((c) => c.ok)) {
     try {
       const first = await provider.deploy(makeContext(opts));
       const err = validateResult(first);
