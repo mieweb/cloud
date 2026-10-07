@@ -26,8 +26,9 @@ concurrency:
   group: pr-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-# Two jobs so PR-controlled code never runs with a write token: `pack` installs,
-# stamps and packs (read-only token; lifecycle scripts run here), and `publish`
+# Two jobs so PR-controlled code never runs with a token: `pack` installs (read
+# token, but no scripts run), then stamps and packs without any token
+# (lifecycle scripts run here), and `publish`
 # only uploads the resulting tarballs with --ignore-scripts. It never checks out
 # or executes the PR's code.
 permissions:
@@ -57,7 +58,10 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: '@mieweb'
 
-      - run: pnpm install --frozen-lockfile
+      # The only step with a token (packages: read, for @mieweb deps on GitHub
+      # Packages). --ignore-scripts and --ignore-pnpmfile so none of the PR's
+      # code runs while it's in the environment; nothing here needs a build.
+      - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

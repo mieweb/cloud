@@ -42,6 +42,20 @@ test('a provider installed in the project resolves from the project, incl. ESM-o
   assert.equal(provider?.name, 'esm-only');
 });
 
+test('a require-only provider installed in the project resolves from the project', async (t) => {
+  const root = tmp(t);
+  const pkg = join(root, 'node_modules', 'cjs-only-provider');
+  mkdirSync(pkg, { recursive: true });
+  writeFileSync(join(root, 'package.json'), '{"name":"app"}');
+  writeFileSync(join(pkg, 'package.json'), '{"name":"cjs-only-provider","exports":{"require":"./i.cjs"}}');
+  writeFileSync(
+    join(pkg, 'i.cjs'),
+    "module.exports = { createProvider: () => ({ name: 'cjs-only', supports: () => true, deploy: async () => ({ resources: [] }) }) };",
+  );
+  const provider = await resolveProvider({ root, target: 'custom', targetConfig: { provider: 'cjs-only-provider' } });
+  assert.equal(provider?.name, 'cjs-only');
+});
+
 test('delegateToWrangler returns wrangler’s exit code', async (t) => {
   const dir = tmp(t);
   const fake = join(dir, 'w');
