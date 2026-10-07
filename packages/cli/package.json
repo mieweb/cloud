@@ -33,10 +33,14 @@
     "@mieweb/cloud-adapters": "workspace:*",
     "@mieweb/deploy-contract": "workspace:*",
     "@mieweb/deploy-wrangler": "workspace:*",
+    "import-meta-resolve": "^4.2.0",
     "jsonc-parser": "^3.3.1"
   },
   "files": [
     "src",
     "mieweb-config.schema.json"
-  ]
+  ],
+  "scripts": {
+    "test": "node --test 'test/*.test.mjs'"
+  }
 }

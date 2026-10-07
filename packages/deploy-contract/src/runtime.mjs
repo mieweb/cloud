@@ -1,13 +1,7 @@
 /**
- * Runtime values for `@mieweb/deploy-contract`.
- *
- * The contract is overwhelmingly *types* (see `index.ts` / `index.d.ts`), but a
- * couple of things must exist at runtime — chiefly {@link AuthError}, which
- * providers `throw` and the CLI catches with `instanceof`. Those live here in
- * plain ESM so a provider written as bare-`node` `.mjs` (like
- * `@mieweb/deploy-wrangler`) can `import` them without any TypeScript loader or
- * build step. `index.d.ts` re-exports these declarations so TS consumers still
- * see one surface.
+ * Runtime entry for `@mieweb/deploy-contract`: the few values that must exist
+ * at runtime (the rest of the contract is types, in `index.ts`). Plain ESM so
+ * bare-`node` providers can import it without a TypeScript loader.
  */
 
 /**

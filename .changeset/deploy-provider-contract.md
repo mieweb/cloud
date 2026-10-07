@@ -18,8 +18,7 @@ Introduce the deploy-provider contract and a Cloudflare reference provider.
   `targetConfig` is documented as non-secret. Runtime values (`AuthError`,
   `RESOURCE_KINDS`) ship as plain ESM so bare-`node` providers can import them
   without a TypeScript loader; declarations use `.d.mts` and the factory env
-  type is a dependency-free record (no `@types/node` required). Also exports a
-  shared string-aware `./jsonc` parser used by the CLI and providers.
+  type is a dependency-free record (no `@types/node` required).
 - `@mieweb/deploy-wrangler` (new): the Cloudflare **reference** provider. Wraps
   the pinned `wrangler` binary (`deploy`/`dev`/`tail`, plus
   `login`/`logout`/`whoami` mapped to their wrangler equivalents) and reads
@@ -27,14 +26,13 @@ Introduce the deploy-provider contract and a Cloudflare reference provider.
   deploy so auto-provisioned, written-back ids are surfaced. Deploy failures that
   are actually auth failures map to `AuthError`; a signal-killed child is treated
   as failure; `dev` exposes a `closed` promise so a crashed dev returns instead
-  of hanging. `wrangler` is an optional peer dependency (the `MIEWEB_REAL_WRANGLER`
-  escape hatch also satisfies it). It is the canonical implementation other
+  of hanging. It runs the project's own `wrangler` (or `MIEWEB_REAL_WRANGLER`). It is the canonical implementation other
   providers (opensource-server, future AWS/GCP) are measured against via the
   test-kit.
 - `@mieweb/cli`: `deploy`/`dev`/`tail`/`login`/`logout`/`whoami`/`destroy` now
   route through a resolved `DeployProvider`. Cloudflare resolves to the wrangler
   reference provider; other targets can name a provider package in
   `mieweb.jsonc` (`targets[t].provider`). Targets without a provider fall
-  through to the existing behavior unchanged. Provider context is recursively
-  redacted of secrets before it reaches a provider, and `AuthError` is surfaced
+  through to the existing behavior unchanged. The data-plane `bindings` bag is
+  stripped from the provider's `targetConfig`, and `AuthError` is surfaced
   with an actionable "run `mieweb login`" hint.
