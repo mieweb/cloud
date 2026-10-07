@@ -26,9 +26,7 @@ import { delegateToWrangler } from './cloudflare.mjs';
 import { runHostTarget } from './local.mjs';
 import { runInit } from './init.mjs';
 import { runImagesCommand, runRegistryCommand } from './images.mjs';
-import { PROVIDER_VERBS, resolveProvider, runProviderVerb } from './provider.mjs';
-
-/** Verbs handled by the deploy-contract provider layer. */
+import { PROVIDER_VERBS, providerImplements, resolveProvider, runProviderVerb } from './provider.mjs';
 
 /** Read this CLI's version from its package.json. */
 function miewebVersion() {
@@ -105,7 +103,8 @@ async function main(argv) {
   // PROVIDER_VERBS). Cloudflare resolves to the wrangler reference provider;
   // other targets can name a provider package in mieweb.jsonc
   // (`targets[t].provider`). Everything else (d1 migrations, etc.) and any
-  // target without a provider falls through to the legacy paths below.
+  // target without a provider — or a verb the provider doesn't implement (e.g.
+  // `dev` on mieweb) — falls through to the legacy paths below.
   if (/** @type {readonly string[]} */ (PROVIDER_VERBS).includes(args[0])) {
     let provider = null;
     try {
@@ -114,7 +113,7 @@ async function main(argv) {
       console.error(`mieweb: ${err?.message ?? err}`);
       return 1;
     }
-    if (provider) {
+    if (provider && providerImplements(provider, args[0])) {
       return runProviderVerb(
         /** @type {import('./provider.mjs').ProviderVerb} */ (args[0]),
         provider,
