@@ -5,7 +5,7 @@ import { join, isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import { AuthError } from '@mieweb/deploy-contract';
-import { parseJsonc } from '@mieweb/deploy-contract/jsonc';
+import { parseJsonc } from './jsonc.mjs';
 
 /**
  * `@mieweb/deploy-wrangler` — the Cloudflare **reference** deploy provider.
@@ -377,7 +377,7 @@ function reloadManifest(context) {
   for (const p of candidates) {
     if (!existsSync(p)) continue;
     try {
-      return /** @type {Record<string, unknown>} */ (parseJsonc(readFileSync(p, 'utf8')));
+      return /** @type {Record<string, unknown>} */ (parseJsonc(readFileSync(p, 'utf8'), p));
     } catch {
       break;
     }

@@ -23,10 +23,6 @@
     "./testkit": {
       "types": "./src/testkit.d.ts",
       "default": "./src/testkit.mjs"
-    },
-    "./jsonc": {
-      "types": "./src/jsonc.d.ts",
-      "default": "./src/jsonc.mjs"
     }
   },
   "files": [
