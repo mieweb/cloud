@@ -91,13 +91,6 @@ export interface DeployContext {
   readonly manifestPath?: string;
 
   /**
-   * The parsed mieweb sidecar config (mieweb.jsonc), or `{}` when absent.
-   * Holds mieweb-specific, non-wrangler configuration (target selection,
-   * per-target adapter settings).
-   */
-  readonly mieweb: Readonly<Record<string, unknown>>;
-
-  /**
    * Provider/adapter configuration scoped to the active target
    * (`mieweb.jsonc` → `targets[target]`), or `{}` when absent. This is
    * **non-secret** configuration — a provider package name, a backend location
@@ -105,7 +98,7 @@ export interface DeployContext {
    * on-disk, potentially committed file.
    *
    * **Secrets do not belong here.** Credentials/tokens a provider needs are read
-   * from the environment via {@link DeployProviderFactory} (`createProvider(env)`),
+   * from the environment via `createProvider(env)` (see {@link DeployProviderModule}),
    * never from `targetConfig` and never from {@link manifest}. This keeps the
    * "credentials never travel through the contract in a serializable form"
    * guarantee (see {@link AuthStatus}) intact and gives provider authors one
@@ -213,7 +206,7 @@ export interface DeployHandle {
  *
  * Credentials themselves NEVER travel through the contract in a form that could
  * be logged or serialized — a provider reads them from the environment at
- * construction time (see {@link DeployProviderFactory}). This type only reports
+ * construction time (see {@link DeployProviderModule.createProvider}). This type only reports
  * *whether* the provider is authenticated and, optionally, a non-secret label
  * (account id, username, email) suitable for display.
  */
@@ -231,10 +224,10 @@ export interface AuthStatus {
  * authenticated (or the credentials are expired/insufficient). The
  * control-plane analogue of `UnsupportedBindingError` on the data plane.
  *
- * The runtime implementation lives in `runtime.mjs` (plain ESM) so that
- * bare-`node` `.mjs` providers can `throw new AuthError(...)` and the CLI can
- * `instanceof`-check it without a TypeScript loader; it is re-exported here so
- * TypeScript consumers see a single contract surface.
+ * Implemented in `runtime.mjs` (plain ESM) so bare-`node` providers can
+ * `throw new AuthError(...)` without a TypeScript loader. Consumers should
+ * match on `err.name === 'AuthError'` rather than `instanceof`, so it works
+ * across duplicate copies of this package.
  */
 export { AuthError } from './runtime.mjs';
 
@@ -320,7 +313,13 @@ export interface DeployProvider {
  */
 export interface DeployProviderModule {
   default?: DeployProvider;
-  createProvider?: DeployProviderFactory;
+  /**
+   * Builds the provider. Receives the process environment for host-bootstrap
+   * config only (never the worker's `env`): this is where a provider reads its
+   * backend location + credentials, keeping them out of the committed manifest
+   * and the {@link DeployContext}. Synchronous so selection stays cheap.
+   */
+  createProvider?: (env: ProviderEnv) => DeployProvider;
 }
 
 /**
@@ -330,13 +329,3 @@ export interface DeployProviderModule {
  * contract can still type a provider factory.
  */
 export type ProviderEnv = Readonly<Record<string, string | undefined>>;
-
-/**
- * Factory that builds a provider. Receives the process environment for
- * host-bootstrap config only (never the worker's `env`) — this is where a
- * provider reads its backend location + credentials (e.g. a self-hosted
- * instance URL and token), keeping them out of the committed manifest and the
- * {@link DeployContext}. Kept synchronous so provider selection stays cheap; do
- * real I/O inside the verbs.
- */
-export type DeployProviderFactory = (env: ProviderEnv) => DeployProvider;

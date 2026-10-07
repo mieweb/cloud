@@ -1,11 +1,11 @@
 // @ts-check
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join, isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import { AuthError } from '@mieweb/deploy-contract';
-import { parseJsonc } from './jsonc.mjs';
+import { parse as parseJsonc } from 'jsonc-parser';
 
 /**
  * `@mieweb/deploy-wrangler` — the Cloudflare **reference** deploy provider.
@@ -43,6 +43,10 @@ import { parseJsonc } from './jsonc.mjs';
  */
 const STDERR_CAP = 64 * 1024;
 
+const NOT_FOUND =
+  'wrangler binary not found. Install it as a dependency of your project ' +
+  '(`npm i -D wrangler`) or set MIEWEB_REAL_WRANGLER to its path.';
+
 /**
  * Spawn the repo-pinned `wrangler` and resolve with its exit status.
  *
@@ -64,24 +68,17 @@ const STDERR_CAP = 64 * 1024;
  * failure rather than success (see {@link assertOk}).
  *
  * @param {string[]} args wrangler argv
- * @param {{ cwd: string, signal: AbortSignal, capture?: boolean }} opts
+ * @param {{ cwd: string, signal?: AbortSignal, capture?: boolean }} opts
  * @returns {Promise<{ code: number|null, signal: NodeJS.Signals|null, stderr: string }>}
  */
-function runWrangler(args, opts) {
+export function runWrangler(args, opts) {
   const real = process.env.MIEWEB_REAL_WRANGLER;
   if (!real) {
     // Using a package runner (npx/pnpm/…) to launch the project's wrangler: the
     // runner itself exists, so a missing wrangler surfaces as a generic non-zero
     // exit rather than spawn ENOENT. Pre-resolve wrangler from the project so we
     // can raise the actionable prerequisite error instead.
-    if (!wranglerResolvable(opts.cwd)) {
-      return Promise.reject(
-        new Error(
-          'wrangler binary not found. Install it as a dependency of your project ' +
-            '(`npm i -D wrangler`) or set MIEWEB_REAL_WRANGLER to its path.',
-        ),
-      );
-    }
+    if (!wranglerResolvable(opts.cwd)) return Promise.reject(new Error(NOT_FOUND));
   }
   const { cmd, prefix } = real ? { cmd: real, prefix: [] } : resolveRunner();
   const finalArgs = [...prefix, ...args];
@@ -116,16 +113,7 @@ function runWrangler(args, opts) {
     child.on('error', (/** @type {any} */ err) => {
       // ENOENT here means neither MIEWEB_REAL_WRANGLER nor a resolvable
       // `wrangler` exists — surface an actionable prerequisite message.
-      if (err && err.code === 'ENOENT') {
-        reject(
-          new Error(
-            'wrangler binary not found. Install it as a dependency of your project ' +
-              '(`npm i -D wrangler`) or set MIEWEB_REAL_WRANGLER to its path.',
-          ),
-        );
-        return;
-      }
-      reject(err);
+      reject(err?.code === 'ENOENT' ? new Error(NOT_FOUND) : err);
     });
     // Resolve on `close`, not `exit`: `close` fires only after the child's
     // stdio streams have fully flushed, so a captured stderr buffer is complete
@@ -182,11 +170,39 @@ function wranglerResolvable(cwd) {
  * @param {string} verb for the message
  */
 function assertOk(result, verb) {
-  if (result.code === 0) return;
-  if (result.signal) {
-    throw new Error(`wrangler ${verb} was terminated by signal ${result.signal}`);
-  }
-  throw new Error(`wrangler ${verb} exited with code ${result.code}`);
+  if (result.code !== 0) throw exitError(result, verb);
+}
+
+/**
+ * @param {{ code: number|null, signal: NodeJS.Signals|null }} result
+ * @param {string} verb
+ * @returns {Error}
+ */
+function exitError(result, verb) {
+  return new Error(
+    result.signal
+      ? `wrangler ${verb} was terminated by signal ${result.signal}`
+      : `wrangler ${verb} exited with code ${result.code}`,
+  );
+}
+
+/**
+ * Run wrangler for a verb in the context's project.
+ * @param {DeployContext} context
+ * @param {string[]} args
+ * @param {{ capture?: boolean, signal?: AbortSignal }} [opts]
+ */
+function run(context, args, opts = {}) {
+  return runWrangler(args, { cwd: context.root, signal: opts.signal ?? context.signal, capture: opts.capture });
+}
+
+/**
+ * Whether `err` is the AbortError from the caller interrupting (Ctrl-C).
+ * @param {unknown} err
+ * @param {AbortSignal} signal
+ */
+function interrupted(err, signal) {
+  return /** @type {any} */ (err)?.name === 'AbortError' && signal.aborted;
 }
 
 /** Exit codes wrangler uses when the caller is unauthenticated/forbidden. */
@@ -245,16 +261,9 @@ function effectiveManifestPath(context) {
  * @returns {boolean}
  */
 function isAuthFailure(stderr) {
-  if (!stderr) return false;
-  const s = stderr.toLowerCase();
-  return (
-    s.includes('[code: 10000]') || // wrangler: Authentication error
-    /\b(401|403)\b/.test(s) ||
-    s.includes('unauthorized') ||
-    s.includes('not authenticated') ||
-    s.includes('authentication error') ||
-    s.includes('please run `wrangler login`') ||
-    s.includes('you are not authenticated')
+  // `[code: 10000]` is wrangler's "Authentication error".
+  return /\[code: 10000\]|\b40[13]\b|unauthorized|not authenticated|authentication error|please run `wrangler login`/i.test(
+    stderr ?? '',
   );
 }
 
@@ -288,11 +297,7 @@ async function failedDueToAuth(context, result) {
   // 2. Interactive TTY: the verb's stderr wasn't captured. Probe whoami, but
   //    only trust an *explicit* not-authenticated marker.
   try {
-    const who = await runWrangler(['whoami'], {
-      cwd: context.root,
-      signal: context.signal,
-      capture: true,
-    });
+    const who = await run(context, ['whoami'], { capture: true });
     if (who.code === 0) return false; // clearly authenticated
     return isAuthFailure(who.stderr); // explicit marker only; no empty fallback
   } catch {
@@ -360,9 +365,8 @@ function readResources(manifest) {
  * stale, so reading ids from it would miss freshly-created resources. We reload
  * the file so surfaced {@link ResourceHandle}s carry the written-back ids.
  *
- * Uses {@link DeployContext.manifestPath} (the resolved path, honoring a custom
- * location) when present, falling back to the conventional filenames under
- * {@link DeployContext.root}. Best-effort: if the file can't be found/parsed we
+ * Uses the user's `--config` or {@link DeployContext.manifestPath} (the path
+ * the CLI resolved). Best-effort: if there is no path or the file can't be read we
  * fall back to the in-memory manifest rather than fail the deploy — the deploy
  * already succeeded.
  *
@@ -370,16 +374,12 @@ function readResources(manifest) {
  * @returns {Readonly<Record<string, unknown>>}
  */
 function reloadManifest(context) {
-  const effective = effectiveManifestPath(context);
-  const candidates = effective
-    ? [effective]
-    : [join(context.root, 'wrangler.jsonc'), join(context.root, 'wrangler.json')];
-  for (const p of candidates) {
-    if (!existsSync(p)) continue;
+  const path = effectiveManifestPath(context);
+  if (path) {
     try {
-      return /** @type {Record<string, unknown>} */ (parseJsonc(readFileSync(p, 'utf8'), p));
+      return parseJsonc(readFileSync(path, 'utf8'), [], { allowTrailingComma: true }) ?? context.manifest;
     } catch {
-      break;
+      // unreadable: fall through
     }
   }
   return context.manifest;
@@ -389,7 +389,7 @@ function reloadManifest(context) {
  * The reference provider instance. Stateless — safe to share.
  * @type {DeployProvider}
  */
-export const wranglerProvider = {
+const provider = {
   name: 'wrangler',
 
   /**
@@ -420,11 +420,7 @@ export const wranglerProvider = {
     // Request capture: honored only in non-TTY (CI), where the verb's own stderr
     // becomes the authoritative auth signal; on a TTY it inherits and we fall
     // back to a whoami probe. Either way TTY UX is preserved.
-    const result = await runWrangler(['deploy', ...configFlag(context), ...context.argv], {
-      cwd: context.root,
-      signal: context.signal,
-      capture: true,
-    });
+    const result = await run(context, ['deploy', ...configFlag(context), ...context.argv], { capture: true });
     if (result.code !== 0) {
       if (await failedDueToAuth(context, result)) {
         throw new AuthError('wrangler', context.target, AUTH_EXIT_HINT);
@@ -446,30 +442,20 @@ export const wranglerProvider = {
    * @returns {Promise<DeployHandle>}
    */
   async dev(context) {
+    // Either the caller's signal or stop() ends the child.
     const controller = new AbortController();
-    // Fold the caller's signal into ours so either can stop the child. Handle an
-    // already-aborted incoming signal too (don't miss the event).
-    if (context.signal.aborted) controller.abort();
-    else context.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    const signal = AbortSignal.any([context.signal, controller.signal]);
 
-    const done = runWrangler(['dev', ...configFlag(context), ...context.argv], {
-      cwd: context.root,
-      signal: controller.signal,
-      capture: true,
-    }).then(
+    const done = run(context, ['dev', ...configFlag(context), ...context.argv], { capture: true, signal }).then(
       async (result) => {
         // A clean exit (code 0) or a stop()-triggered abort is fine; anything
         // else is a dev failure the CLI should learn about via `closed`.
-        if (result.code === 0 || controller.signal.aborted) return;
+        if (result.code === 0 || signal.aborted) return;
         // Classify: the verb's own stderr (CI) or a whoami probe (TTY).
         if (await failedDueToAuth(context, result)) {
           throw new AuthError('wrangler', context.target, AUTH_EXIT_HINT);
         }
-        throw new Error(
-          result.signal
-            ? `wrangler dev was terminated by signal ${result.signal}`
-            : `wrangler dev exited with code ${result.code}`,
-        );
+        throw exitError(result, 'dev');
       },
       (err) => {
         if (/** @type {any} */ (err)?.name === 'AbortError') return; // expected on stop()
@@ -497,15 +483,10 @@ export const wranglerProvider = {
   async tail(context) {
     let result;
     try {
-      result = await runWrangler(['tail', ...configFlag(context), ...context.argv], {
-        cwd: context.root,
-        signal: context.signal,
-        capture: true,
-      });
+      result = await run(context, ['tail', ...configFlag(context), ...context.argv], { capture: true });
     } catch (err) {
-      // The caller interrupted (Ctrl-C) → aborting the child surfaces as
-      // AbortError. For an interactive stream that is a clean stop, not a failure.
-      if (/** @type {any} */ (err)?.name === 'AbortError' && context.signal.aborted) return;
+      // Ctrl-C on an interactive stream is a clean stop, not a failure.
+      if (interrupted(err, context.signal)) return;
       throw err;
     }
     // A signal stop we initiated via context.signal is also a clean exit.
@@ -526,11 +507,7 @@ export const wranglerProvider = {
    * @returns {Promise<import('@mieweb/deploy-contract').AuthStatus>}
    */
   async whoami(context) {
-    const result = await runWrangler(['whoami', ...context.argv], {
-      cwd: context.root,
-      signal: context.signal,
-      capture: true,
-    });
+    const result = await run(context, ['whoami', ...context.argv], { capture: true });
     if (result.code === 0) {
       // Env-token auth vs. the OAuth cache both satisfy wrangler; report the
       // dominant method for diagnostics without asserting which one wrangler used.
@@ -542,12 +519,7 @@ export const wranglerProvider = {
       return { authenticated: false };
     }
     // Anything else (signal kill, network, config) is an *undetermined* status.
-    if (result.signal) {
-      throw new Error(`wrangler whoami was terminated by signal ${result.signal}`);
-    }
-    throw new Error(
-      `wrangler whoami could not determine auth status (exited with code ${result.code})`,
-    );
+    throw new Error(`could not determine auth status: ${exitError(result, 'whoami').message}`);
   },
 
   /**
@@ -560,14 +532,10 @@ export const wranglerProvider = {
     context.logger.info('wrangler: starting interactive login (browser OAuth)');
     let result;
     try {
-      result = await runWrangler(['login', ...context.argv], {
-        cwd: context.root,
-        signal: context.signal,
-      });
+      result = await run(context, ['login', ...context.argv]);
     } catch (err) {
-      // Ctrl-C during the interactive flow aborts the child (AbortError); treat
-      // that as a cancelled login, consistent with the non-zero-exit path.
-      if (/** @type {any} */ (err)?.name === 'AbortError' && context.signal.aborted) {
+      // Ctrl-C during the interactive flow: a cancelled login.
+      if (interrupted(err, context.signal)) {
         throw new AuthError('wrangler', context.target, 'wrangler login was cancelled');
       }
       throw err;
@@ -590,25 +558,9 @@ export const wranglerProvider = {
           'take precedence — unset them in your shell to fully log out.',
       );
     }
-    const result = await runWrangler(['logout', ...context.argv], {
-      cwd: context.root,
-      signal: context.signal,
-    });
+    const result = await run(context, ['logout', ...context.argv]);
     assertOk(result, 'logout');
   },
 };
 
-/**
- * Factory form of the provider, per the contract's `DeployProviderModule`
- * convention. Ignores `env` — the reference provider takes its configuration
- * from wrangler.jsonc/PATH, not host env vars (beyond the
- * `MIEWEB_REAL_WRANGLER` escape hatch read at spawn time).
- *
- * @param {import('@mieweb/deploy-contract').ProviderEnv} [_env]
- * @returns {DeployProvider}
- */
-export function createProvider(_env) {
-  return wranglerProvider;
-}
-
-export default wranglerProvider;
+export default provider;

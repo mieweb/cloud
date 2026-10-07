@@ -1,4 +1,4 @@
-import type { DeployProvider, DeployTarget, ResourceHandle } from './index.js';
+import type { DeployProvider, DeployTarget } from './index.js';
 
 /** A single conformance assertion outcome. */
 export interface ConformanceCheck {
@@ -22,8 +22,6 @@ export interface ConformanceOptions {
   readonly target: DeployTarget;
   /** Fixture manifest (a wrangler.jsonc-shaped object). */
   readonly manifest: Readonly<Record<string, unknown>>;
-  /** Fixture mieweb.jsonc. Defaults to `{}`. */
-  readonly mieweb?: Readonly<Record<string, unknown>>;
   /** Fixture per-target config. Defaults to `{}`. */
   readonly targetConfig?: Readonly<Record<string, unknown>>;
   /** Absolute root for the fixture. Defaults to `process.cwd()`. */
@@ -31,23 +29,10 @@ export interface ConformanceOptions {
   /**
    * When true, actually invoke `deploy` (side effects!). Defaults to false so
    * the kit can validate the interface contract without provisioning anything.
-   * Set true in an environment where the provider's backend is reachable.
+   * Set true in an environment where the provider's backend is reachable;
+   * the kit deploys twice and checks the returned handles match.
    */
   readonly live?: boolean;
-  /**
-   * Provider-specific hook that merges the ids from a first deploy back into the
-   * manifest, so the kit can verify **handle stability** on a second run (that
-   * the same {binding, kind, id} handles come back — not full backend
-   * idempotency, which the kit cannot observe). Because id placement is
-   * provider-specific (there is no mandated manifest layout), the caller supplies
-   * it. **Required for a fully-passing `live` run:** when omitted on a live run,
-   * the kit records an explicit *failed* handle-stability check rather than
-   * silently skipping the obligation.
-   */
-  readonly applyIds?: (
-    manifest: Readonly<Record<string, unknown>>,
-    resources: readonly ResourceHandle[],
-  ) => Record<string, unknown>;
 }
 
 /** Run the conformance suite against a provider. */

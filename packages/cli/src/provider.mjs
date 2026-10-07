@@ -1,7 +1,7 @@
 // @ts-check
 import { pathToFileURL } from 'node:url';
 import { resolve, join, isAbsolute } from 'node:path';
-import { createRequire } from 'node:module';
+import { resolve as resolveFrom } from 'import-meta-resolve';
 import { existsSync } from 'node:fs';
 
 /**
@@ -26,6 +26,11 @@ import { existsSync } from 'node:fs';
  * @typedef {import('@mieweb/deploy-contract').DeployProviderModule} DeployProviderModule
  * @typedef {import('./config.mjs').MiewebConfig} MiewebConfig
  */
+
+/** CLI verbs that route through a DeployProvider (see runProviderVerb). */
+export const PROVIDER_VERBS = /** @type {const} */ (['deploy', 'dev', 'tail', 'login', 'logout', 'whoami', 'destroy']);
+
+/** @typedef {typeof PROVIDER_VERBS[number]} ProviderVerb */
 
 /**
  * Built-in provider mapping. Kept tiny and explicit for the POC: only the
@@ -89,23 +94,16 @@ export async function resolveProvider(config) {
     // `C:\...`) → use as-is. `resolve` handles both correctly.
     importable = pathToFileURL(resolve(config.root, specifier)).href;
   } else {
-    // Bare package specifier: resolve from the *project's* module graph using
-    // Node's ESM resolver (honors the `import` condition, so an ESM-only
-    // provider resolves), rooted at the project's package.json — not the CLI's
-    // own dependency tree. Fall back to a CLI-relative import only for the
-    // built-in providers that ARE the CLI's deps (e.g. @mieweb/deploy-wrangler).
+    // Bare package specifier: resolve from the *project's* module graph
+    // (honoring the `import` condition, so ESM-only providers work), not the
+    // CLI's own. Built-in providers are CLI dependencies, so if the project
+    // doesn't have them, fall back to resolving from here.
+    // (`import.meta.resolve`'s parent argument needs an experimental flag.)
     const parentUrl = pathToFileURL(join(config.root, 'package.json')).href;
     try {
-      importable = import.meta.resolve(specifier, parentUrl);
+      importable = resolveFrom(specifier, parentUrl);
     } catch {
-      try {
-        // Secondary attempt via CJS resolver rooted at the project (covers
-        // packages exposing only a `require`/`main` entry).
-        const requireFromProject = createRequire(parentUrl);
-        importable = pathToFileURL(requireFromProject.resolve(specifier)).href;
-      } catch {
-        importable = specifier; // last resort: CLI-relative (built-ins)
-      }
+      importable = specifier;
     }
   }
 
@@ -122,101 +120,18 @@ export async function resolveProvider(config) {
 }
 
 /**
- * Keys under `targets[t]` that hold **data-plane** configuration for the local
- * host harness / runtime adapters — NOT deploy-provider config. These can carry
- * driver secrets (`secretAccessKey`, `authToken`, …) and must never be handed to
- * a control-plane deploy provider, which the contract documents as receiving
- * only non-secret config. See packages/cli/mieweb-config.schema.json.
- */
-const DATA_PLANE_KEYS = new Set(['bindings']);
-
-/**
- * Matches key names that look secret-bearing. Because the config schema allows
- * arbitrary `targets.<t>` properties, a denylist of one bag (`bindings`) is not
- * enough: a custom `providerToken`/`password`/`accessKey` at the target level
- * would otherwise reach the provider. We drop any key whose name matches this,
- * as defense-in-depth on top of the `bindings` removal. Deploy credentials are
- * meant to come from the environment (`createProvider(env)`), never config.
- */
-const SECRETISH_KEY = /(secret|token|password|passwd|credential|apikey|api_key|accesskey|access_key|privatekey|private_key|auth)/i;
-
-/**
- * Recursively strip secret-bearing values from an arbitrary config value:
- *   - drops the data-plane `bindings` bag entirely,
- *   - drops any object key whose *name* looks secret-bearing ({@link SECRETISH_KEY}),
- *   - recurses into nested objects/arrays so a secret nested inside an otherwise
- *     non-secret setting (e.g. `registry.password`) is also removed.
- * Non-secret scalars/objects pass through. This upholds the contract's
- * guarantee that provider context is non-secret; deploy credentials come from
- * the environment via `createProvider(env)`.
- *
- * @param {unknown} value
- * @returns {unknown}
- */
-function redactSecrets(value) {
-  if (Array.isArray(value)) return value.map(redactSecrets);
-  if (value && typeof value === 'object') {
-    /** @type {Record<string, unknown>} */
-    const out = {};
-    for (const [k, v] of Object.entries(value)) {
-      if (DATA_PLANE_KEYS.has(k) || SECRETISH_KEY.test(k)) continue;
-      out[k] = redactSecrets(v);
-    }
-    return out;
-  }
-  return value;
-}
-
-/**
- * Project the raw per-target config down to what a deploy provider legitimately
- * needs: recursively redacted of the data-plane bags and any secret-bearing key,
- * keeping the open-ended non-secret config (provider name, instance URL, tuning,
- * …). Deploy credentials come from the environment via `createProvider(env)`.
+ * `targets[t]` minus its data-plane `bindings` bag, which holds driver
+ * settings (and possibly driver secrets) for the runtime adapters, not
+ * deploy-provider config. Everything else in `targets[t]` is non-secret by
+ * contract (credentials come from the environment via `createProvider(env)`)
+ * and is passed through as-is.
  *
  * @param {Record<string, any>} [targetConfig]
  * @returns {Record<string, unknown>}
  */
 function sanitizeTargetConfig(targetConfig) {
-  return /** @type {Record<string, unknown>} */ (redactSecrets(targetConfig ?? {}));
-}
-
-/**
- * Non-secret top-level keys of `mieweb.jsonc` that are safe to expose to a
- * deploy provider. Allowlisted (not denylisted): the config schema permits
- * additional top-level properties, so an unknown key like `apiToken` must be
- * dropped rather than passed through. Deploy credentials live in the environment
- * (`createProvider(env)`), never in this context.
- */
-const MIEWEB_PUBLIC_KEYS = new Set(['target', 'targets', 'wrangler']);
-
-/**
- * Project the whole parsed `mieweb.jsonc` (`config.raw`) down to a non-secret
- * view for `DeployContext.mieweb`. Only allowlisted top-level keys survive, and
- * each `targets[*]` has its data-plane `bindings` bag (driver secrets) stripped —
- * otherwise sanitizing `targetConfig` alone would still leak secrets here.
- *
- * @param {Record<string, any>} [raw]
- * @returns {Record<string, unknown>}
- */
-function sanitizeMieweb(raw) {
-  /** @type {Record<string, unknown>} */
-  const out = {};
-  for (const [k, v] of Object.entries(raw ?? {})) {
-    if (!MIEWEB_PUBLIC_KEYS.has(k)) continue; // drop unknown/secret top-level keys
-    if (k !== 'targets') {
-      out[k] = v;
-      continue;
-    }
-    // Scrub each target's data-plane bags.
-    /** @type {Record<string, unknown>} */
-    const targets = {};
-    for (const [t, cfg] of Object.entries(v ?? {})) {
-      targets[t] =
-        cfg && typeof cfg === 'object' ? sanitizeTargetConfig(/** @type {any} */ (cfg)) : cfg;
-    }
-    out.targets = targets;
-  }
-  return out;
+  const { bindings: _bindings, ...rest } = targetConfig ?? {};
+  return rest;
 }
 
 /**
@@ -260,7 +175,6 @@ export function buildContext(config, argv) {
     // default path, only advertise it when the file actually exists — otherwise
     // forwarding `--config <missing default>` would defeat wrangler's discovery.
     manifestPath: resolveManifestPath(config),
-    mieweb: sanitizeMieweb(config.raw),
     targetConfig: sanitizeTargetConfig(config.targetConfig),
     argv,
     logger: {
@@ -288,7 +202,7 @@ export function buildContext(config, argv) {
  * gets an actionable hint (e.g. "run `mieweb login`") instead of a raw failure.
  * Returns a process exit code.
  *
- * @param {'deploy'|'dev'|'tail'|'login'|'logout'|'whoami'|'destroy'} verb
+ * @param {ProviderVerb} verb
  * @param {DeployProvider} provider
  * @param {MiewebConfig} config
  * @param {string[]} argv passthrough args (verb already removed)
@@ -304,7 +218,7 @@ export async function runProviderVerb(verb, provider, config, argv) {
     }
 
     if (verb === 'dev') {
-      if (!provider.dev) return unsupported(provider, 'dev');
+      if (!provider.dev) return unsupported(context, provider, 'dev');
       const handle = await provider.dev(context);
       if (handle.url) context.logger.info(`dev server: ${handle.url}`);
 
@@ -318,7 +232,7 @@ export async function runProviderVerb(verb, provider, config, argv) {
         context.signal.addEventListener('abort', () => res('interrupt'), { once: true });
       });
       const closed = handle.closed
-        ? handle.closed.then(() => 'closed', (err) => { throw err; })
+        ? handle.closed.then(() => 'closed')
         : new Promise(() => {}); // provider can't self-exit → only interrupt ends it
 
       try {
@@ -337,13 +251,13 @@ export async function runProviderVerb(verb, provider, config, argv) {
     }
 
     if (verb === 'tail') {
-      if (!provider.tail) return unsupported(provider, 'tail');
+      if (!provider.tail) return unsupported(context, provider, 'tail');
       await provider.tail(context);
       return 0;
     }
 
     if (verb === 'destroy') {
-      if (!provider.destroy) return unsupported(provider, 'destroy');
+      if (!provider.destroy) return unsupported(context, provider, 'destroy');
       await provider.destroy(context);
       context.logger.info(`destroyed via provider "${provider.name}".`);
       return 0;
@@ -394,7 +308,7 @@ export async function runProviderVerb(verb, provider, config, argv) {
       return 1;
     }
 
-    return unsupported(provider, verb);
+    return unsupported(context, provider, verb);
   } catch (err) {
     // AuthError gets a friendlier, actionable message than a generic failure.
     // Its `message` already renders any provider-supplied hint, so we only add
@@ -429,13 +343,12 @@ function reportDeploy(result) {
 }
 
 /**
+ * @param {DeployContext} context
  * @param {DeployProvider} provider
  * @param {string} verb
  * @returns {number}
  */
-function unsupported(provider, verb) {
-  process.stderr.write(
-    `[mieweb] provider "${provider.name}" does not implement "${verb}".\n`,
-  );
+function unsupported(context, provider, verb) {
+  context.logger.error(`provider "${provider.name}" does not implement "${verb}".`);
   return 1;
 }

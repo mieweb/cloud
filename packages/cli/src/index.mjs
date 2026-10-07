@@ -26,10 +26,9 @@ import { delegateToWrangler } from './cloudflare.mjs';
 import { runHostTarget } from './local.mjs';
 import { runInit } from './init.mjs';
 import { runImagesCommand, runRegistryCommand } from './images.mjs';
-import { resolveProvider, runProviderVerb } from './provider.mjs';
+import { PROVIDER_VERBS, resolveProvider, runProviderVerb } from './provider.mjs';
 
 /** Verbs handled by the deploy-contract provider layer. */
-const PROVIDER_VERBS = new Set(['deploy', 'dev', 'tail', 'login', 'logout', 'whoami', 'destroy']);
 
 /** Read this CLI's version from its package.json. */
 function miewebVersion() {
@@ -107,7 +106,7 @@ async function main(argv) {
   // other targets can name a provider package in mieweb.jsonc
   // (`targets[t].provider`). Everything else (d1 migrations, etc.) and any
   // target without a provider falls through to the legacy paths below.
-  if (PROVIDER_VERBS.has(args[0])) {
+  if (/** @type {readonly string[]} */ (PROVIDER_VERBS).includes(args[0])) {
     let provider = null;
     try {
       provider = await resolveProvider(config);
@@ -117,7 +116,7 @@ async function main(argv) {
     }
     if (provider) {
       return runProviderVerb(
-        /** @type {'deploy'|'dev'|'tail'|'login'|'logout'|'whoami'|'destroy'} */ (args[0]),
+        /** @type {import('./provider.mjs').ProviderVerb} */ (args[0]),
         provider,
         config,
         args.slice(1),

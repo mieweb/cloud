@@ -26,42 +26,28 @@
  * @typedef {import('./testkit.d.ts').ConformanceOptions} ConformanceOptions
  */
 
+import { isDeepStrictEqual } from 'node:util';
 import { RESOURCE_KINDS } from './runtime.mjs';
 
 /**
- * Build a self-contained {@link DeployContext} plus captured log output.
+ * Build a self-contained {@link DeployContext} with a silent logger.
  * @param {ConformanceOptions} opts
- * @returns {{ context: DeployContext, logs: string[], abort: AbortController }}
+ * @returns {DeployContext}
  */
 function makeContext(opts) {
-  /** @type {string[]} */
-  const logs = [];
-  const abort = new AbortController();
-  /** @type {DeployContext} */
-  const context = {
+  const silent = () => {};
+  return {
     root: opts.root ?? process.cwd(),
     target: opts.target,
     manifest: opts.manifest,
-    mieweb: opts.mieweb ?? {},
     targetConfig: opts.targetConfig ?? {},
     argv: [],
-    logger: {
-      info: (m) => logs.push(`info:${m}`),
-      warn: (m) => logs.push(`warn:${m}`),
-      error: (m) => logs.push(`error:${m}`),
-    },
-    signal: abort.signal,
+    logger: { info: silent, warn: silent, error: silent },
+    signal: new AbortController().signal,
   };
-  return { context, logs, abort };
 }
 
-/**
- * The closed set of neutral resource kinds a {@link ResourceHandle} may declare,
- * imported from the contract's single source of truth (no local duplication).
- * @type {ReadonlySet<string>}
- */
 const RESOURCE_KIND_SET = new Set(RESOURCE_KINDS);
-
 /**
  * Shape-check a {@link DeployResult} without assuming a runner's assert lib.
  * @param {unknown} result
@@ -102,9 +88,9 @@ function validateResult(result) {
  *
  * Behavioral checks (only when `live: true`, since they invoke the backend):
  *   4. `deploy` resolves to a well-formed {@link DeployResult}.
- *   5. Handle stability: a second run with the ids from the first surfaces the
- *      same {binding, kind, id} handles (not full backend idempotency — the kit
- *      cannot observe backend reuse; see the inline note).
+ *   5. Handle stability: deploying the same context again returns the same
+ *      {binding, kind, id} handles. (The kit can't observe whether the backend
+ *      reused or recreated a resource, only that the handles are stable.)
  *
  * @param {DeployProvider} provider
  * @param {ConformanceOptions} opts
@@ -125,47 +111,18 @@ export async function runProviderConformance(provider, opts) {
 
   if (opts.live) {
     try {
-      const { context } = makeContext(opts);
-      const first = await provider.deploy(context);
+      const first = await provider.deploy(makeContext(opts));
       const err = validateResult(first);
       record('deploy() resolves to a valid DeployResult', err === null, err ?? undefined);
-
-      // Idempotency: feed the first run's ids back into the manifest and redeploy.
-      // How ids map back into a manifest is provider-specific, so the caller
-      // supplies `applyIds`. Without it we skip the round-trip rather than assume
-      // a wrangler-shaped manifest (which would produce false failures for other
-      // providers).
-      if (typeof opts.applyIds === 'function') {
-        const merged = opts.applyIds(opts.manifest, first.resources ?? []);
-        const { context: second } = makeContext({ ...opts, manifest: merged });
-        const again = await provider.deploy(second);
-        const againErr = validateResult(again);
-        record('second deploy() also resolves to a valid DeployResult', againErr === null, againErr ?? undefined);
-        // NOTE: this verifies *handle stability* — that a redeploy with the
-        // first run's ids returns the same {binding, kind, id} handles — not
-        // true backend idempotency. The kit cannot observe whether the backend
-        // reused vs. destroyed+recreated a resource; a provider that recreates
-        // while returning the same handle passes. Stronger idempotency proof
-        // needs provider-observable reuse evidence, out of scope for the kit.
-        const stable =
-          againErr === null &&
-          JSON.stringify(idset(first.resources ?? [])) === JSON.stringify(idset(again.resources ?? []));
-        record(
-          'deploy() handles are stable across reruns (ids/kinds unchanged)',
-          stable,
-          stable ? undefined : 'second deploy returned a different/invalid set of resource handles',
-        );
-      } else {
-        // Handle-stability is a core obligation. Without an `applyIds` hook it
-        // cannot run — record an explicit *failed* check so a passing report can
-        // never be mistaken for full conformance. Provide `applyIds` (or run
-        // without `live`) to satisfy this.
-        record(
-          'deploy() handle stability checked',
-          false,
-          'live conformance requires an `applyIds` hook to verify handle stability; none was provided',
-        );
-      }
+      const again = await provider.deploy(makeContext(opts));
+      const againErr = validateResult(again);
+      record('second deploy() also resolves to a valid DeployResult', againErr === null, againErr ?? undefined);
+      const stable = againErr === null && isDeepStrictEqual(handles(first.resources), handles(again.resources));
+      record(
+        'deploy() handles are stable across reruns (ids/kinds unchanged)',
+        stable,
+        stable ? undefined : 'second deploy returned a different/invalid set of resource handles',
+      );
     } catch (e) {
       record('deploy() completed without throwing', false, e instanceof Error ? e.message : String(e));
     }
@@ -176,14 +133,10 @@ export async function runProviderConformance(provider, opts) {
 }
 
 /**
- * Sorted `binding→kind:id` view, for order-independent comparison. Includes
- * `kind` because a kind change on the second deploy (same binding/id) is not an
- * idempotent result — it violates the `ResourceHandle` contract.
+ * Order-independent `binding kind:id` view of a deploy's handles.
  * @param {readonly ResourceHandle[]} resources
- * @returns {Array<[string, string]>}
+ * @returns {string[]}
  */
-function idset(resources) {
-  return resources
-    .map((r) => /** @type {[string, string]} */ ([r.binding, `${r.kind}:${r.id}`]))
-    .sort((a, b) => a[0].localeCompare(b[0]));
+function handles(resources) {
+  return resources.map((r) => `${r.binding} ${r.kind}:${r.id}`).sort();
 }
