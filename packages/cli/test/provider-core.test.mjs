@@ -94,3 +94,16 @@ test('`mieweb --version` works without wrangler installed', async (t) => {
   });
   assert.match(out, /^mieweb \d+\.\d+\.\d+/);
 });
+
+test('`mieweb --version` on a non-cloudflare target prints only the version', async (t) => {
+  const { execFileSync } = await import('node:child_process');
+  const dir = tmp(t);
+  writeFileSync(join(dir, 'package.json'), '{"name":"app"}');
+  writeFileSync(join(dir, 'mieweb.jsonc'), '{"target":"mieweb"}');
+  const out = execFileSync(process.execPath, [new URL('../src/index.mjs', import.meta.url).pathname, '--version'], {
+    cwd: dir,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  assert.match(out, /^mieweb \d+\.\d+\.\d+\n$/);
+});

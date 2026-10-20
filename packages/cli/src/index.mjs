@@ -82,6 +82,9 @@ async function main(argv) {
 
   const config = loadConfig({ overrideTarget });
 
+  // Only cloudflare has a second version to show (wrangler's, below).
+  if (versionFlag && config.target !== 'cloudflare') return 0;
+
   // Container image plumbing (build once, skopeo copy — container-plan.md M2).
   // `images push` on the cloudflare target delegates to wrangler's managed
   // registry; every other target goes through skopeo to its own registry.
