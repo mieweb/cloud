@@ -41,6 +41,7 @@
     "mieweb-config.schema.json"
   ],
   "scripts": {
-    "test": "node --test 'test/*.test.mjs'"
+    "test": "node --test 'test/*.test.mjs'",
+    "prepublishOnly": "node ../../scripts/require-pnpm-publish.mjs"
   }
 }

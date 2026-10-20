@@ -15,7 +15,8 @@
     "mieweb": "mieweb",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "check:packs": "node scripts/check-packs.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
