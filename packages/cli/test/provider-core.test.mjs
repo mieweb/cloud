@@ -65,3 +65,32 @@ test('delegateToWrangler returns wrangler’s exit code', async (t) => {
   t.after(() => delete process.env.MIEWEB_REAL_WRANGLER);
   assert.equal(await delegateToWrangler(['d1', 'migrations', 'apply'], { cwd: dir }), 3);
 });
+
+test('delegateToWrangler reports a missing wrangler instead of throwing', async (t) => {
+  const dir = tmp(t);
+  writeFileSync(join(dir, 'package.json'), '{"name":"app"}');
+  const saved = process.env.MIEWEB_REAL_WRANGLER;
+  delete process.env.MIEWEB_REAL_WRANGLER;
+  t.after(() => {
+    if (saved !== undefined) process.env.MIEWEB_REAL_WRANGLER = saved;
+  });
+  const errors = [];
+  t.mock.method(console, 'error', (m) => errors.push(m));
+  assert.equal(await delegateToWrangler(['d1', 'list'], { cwd: dir }), 1);
+  assert.match(errors.join('\n'), /wrangler binary not found/);
+});
+
+test('`mieweb --version` works without wrangler installed', async (t) => {
+  const { execFileSync } = await import('node:child_process');
+  const dir = tmp(t);
+  writeFileSync(join(dir, 'package.json'), '{"name":"app"}');
+  const env = { ...process.env };
+  delete env.MIEWEB_REAL_WRANGLER;
+  const out = execFileSync(process.execPath, [new URL('../src/index.mjs', import.meta.url).pathname, '--version'], {
+    cwd: dir,
+    env,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  assert.match(out, /^mieweb \d+\.\d+\.\d+/);
+});

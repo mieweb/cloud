@@ -67,7 +67,8 @@ async function main(argv) {
 
   // Version flags: always show the mieweb version first. On cloudflare we then
   // let wrangler print its own version below; other targets show mieweb only.
-  if (args[0] === '--version' || args[0] === '-v' || args[0] === '-V') {
+  const versionFlag = args[0] === '--version' || args[0] === '-v' || args[0] === '-V';
+  if (versionFlag) {
     process.stdout.write(`mieweb ${miewebVersion()}\n`);
   }
 
@@ -125,7 +126,9 @@ async function main(argv) {
 
   if (config.target === 'cloudflare') {
     // Reference path for non-provider commands: hand to wrangler untouched.
-    return delegateToWrangler(args, { cwd: config.root });
+    const code = await delegateToWrangler(args, { cwd: config.root });
+    // `--version` already printed mieweb's version; wrangler's is a bonus.
+    return versionFlag ? 0 : code;
   }
 
   // Node "host" targets run the unchanged worker via the host harness. `local`
