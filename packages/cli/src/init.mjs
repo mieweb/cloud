@@ -14,7 +14,7 @@
  * prints next steps. It never installs deps or touches anything outside the
  * target directory.
  */
-import { mkdirSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve, join, basename } from 'node:path';
 
 /**
@@ -88,6 +88,9 @@ function sanitizeName(name) {
   return cleaned || 'mieweb-app';
 }
 
+/** This CLI's version; scaffolds depend on the matching @mieweb release. */
+const CLI_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+
 function packageJson(name) {
   return (
     JSON.stringify(
@@ -104,9 +107,17 @@ function packageJson(name) {
           // the worker on the Node host harness with the networked adapters.
           start: 'mieweb --target mieweb dev',
         },
+        // Runtime deps of `npm start` on the cloud image: the SDKs behind the
+        // generated `mieweb` bindings (libSQL, Valkey). cloud-adapters only
+        // lists them as optional peers, so the app has to install them.
+        dependencies: {
+          '@libsql/client': '^0.14.0',
+          ioredis: '^5.4.1',
+        },
+        // All @mieweb packages release together, so pin both to this CLI's version.
         devDependencies: {
-          '@mieweb/cli': '^0.2.0',
-          '@mieweb/cloud': '^0.2.0',
+          '@mieweb/cli': `^${CLI_VERSION}`,
+          '@mieweb/cloud': `^${CLI_VERSION}`,
         },
       },
       null,

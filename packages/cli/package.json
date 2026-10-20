@@ -24,7 +24,7 @@
     "serverless"
   ],
   "engines": {
-    "node": ">=22.16.0"
+    "node": ">=22.18.0"
   },
   "bin": {
     "mieweb": "./src/index.mjs"

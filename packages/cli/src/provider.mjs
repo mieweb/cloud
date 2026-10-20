@@ -389,10 +389,9 @@ export function providerImplements(provider, verb) {
  */
 export async function persistTargetConfig(config, patch, logger) {
   const entries = Object.entries(patch ?? {});
-  for (const [k] of entries) {
-    if (k === 'bindings' || /(secret|token|password|credential|apikey|privatekey)$/i.test(k)) {
-      throw new Error(`refusing to write "${k}" to mieweb.jsonc: secrets belong in the environment`);
-    }
+  const secret = secretKeyIn(patch);
+  if (secret) {
+    throw new Error(`refusing to write "${secret}" to mieweb.jsonc: secrets belong in the environment`);
   }
   if (entries.length === 0) return false;
 
@@ -411,4 +410,31 @@ export async function persistTargetConfig(config, patch, logger) {
     `Saved ${entries.map(([k, v]) => `targets.${config.target}.${k} = ${JSON.stringify(v)}`).join(', ')} to ${file}`,
   );
   return true;
+}
+
+/** Key names that look like credentials (matched anywhere in the name). */
+const SECRET_KEY = /secret|token|passw|credential|api[-_]?key|access[-_]?key|private[-_]?key/i;
+
+/**
+ * The path of the first secret-looking key in `value` (searched recursively,
+ * including arrays), or null. `bindings` counts too: it holds driver config.
+ * @param {unknown} value
+ * @param {string} [path]
+ * @returns {string|null}
+ */
+function secretKeyIn(value, path = '') {
+  if (Array.isArray(value)) {
+    for (const [i, v] of value.entries()) {
+      const hit = secretKeyIn(v, `${path}[${i}]`);
+      if (hit) return hit;
+    }
+  } else if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) {
+      const p = path ? `${path}.${k}` : k;
+      if (k === 'bindings' || SECRET_KEY.test(k)) return p;
+      const hit = secretKeyIn(v, p);
+      if (hit) return hit;
+    }
+  }
+  return null;
 }

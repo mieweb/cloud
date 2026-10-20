@@ -28,6 +28,9 @@ import { runInit } from './init.mjs';
 import { runImagesCommand, runRegistryCommand } from './images.mjs';
 import { PROVIDER_VERBS, providerImplements, resolveProvider, runProviderVerb } from './provider.mjs';
 
+/** Provider verbs with a legacy implementation to fall back to. */
+const LEGACY_FALLBACK_VERBS = new Set(['dev', 'tail']);
+
 /** Read this CLI's version from its package.json. */
 function miewebVersion() {
   try {
@@ -107,8 +110,10 @@ async function main(argv) {
   // PROVIDER_VERBS). Cloudflare resolves to the wrangler reference provider;
   // other targets can name a provider package in mieweb.jsonc
   // (`targets[t].provider`). Everything else (d1 migrations, etc.) and any
-  // target without a provider — or a verb the provider doesn't implement (e.g.
-  // `dev` on mieweb) — falls through to the legacy paths below.
+  // target without a provider — or a `dev`/`tail` the provider doesn't
+  // implement (e.g. `dev` on mieweb runs the host harness) — falls through to the
+  // legacy paths below. Other omitted verbs (login/logout/whoami/destroy) stay
+  // with runProviderVerb, which explains what the provider doesn't do.
   if (/** @type {readonly string[]} */ (PROVIDER_VERBS).includes(args[0])) {
     let provider = null;
     try {
@@ -117,7 +122,7 @@ async function main(argv) {
       console.error(`mieweb: ${err?.message ?? err}`);
       return 1;
     }
-    if (provider && providerImplements(provider, args[0])) {
+    if (provider && (providerImplements(provider, args[0]) || !LEGACY_FALLBACK_VERBS.has(args[0]))) {
       return runProviderVerb(
         /** @type {import('./provider.mjs').ProviderVerb} */ (args[0]),
         provider,

@@ -107,3 +107,46 @@ test('`mieweb --version` on a non-cloudflare target prints only the version', as
   });
   assert.match(out, /^mieweb \d+\.\d+\.\d+\n$/);
 });
+
+test('a provider without login/logout/whoami gets the built-in explanation, not the legacy path', async (t) => {
+  const { spawnSync } = await import('node:child_process');
+  const dir = tmp(t);
+  writeFileSync(join(dir, 'package.json'), '{"name":"app","type":"module"}');
+  writeFileSync(join(dir, 'wrangler.jsonc'), '{"name":"app","main":"w.mjs"}');
+  writeFileSync(join(dir, 'p.mjs'), "export default { name: 'envonly', supports: () => true, deploy: async () => ({ resources: [] }) };");
+  writeFileSync(join(dir, 'mieweb.jsonc'), '{"target":"custom","targets":{"custom":{"provider":"./p.mjs"}}}');
+  const cli = new URL('../src/index.mjs', import.meta.url).pathname;
+  for (const verb of ['login', 'logout', 'whoami']) {
+    const r = spawnSync(process.execPath, [cli, verb], { cwd: dir, encoding: 'utf8' });
+    assert.equal(r.status, 0, `${verb}: ${r.stderr}`);
+    assert.match(r.stderr + r.stdout, /envonly/, verb);
+  }
+});
+
+test('persistTargetConfig refuses nested and access-key style secrets', async (t) => {
+  const { persistTargetConfig } = await import('../src/provider.mjs');
+  const dir = tmp(t);
+  const config = { root: dir, target: 'mieweb', configPath: join(dir, 'mieweb.jsonc') };
+  const logger = { info() {}, warn() {}, error() {} };
+  for (const patch of [{ secretAccessKey: 'x' }, { manager: { apiToken: 'x' } }, { list: [{ 'x-api-key': 'x' }] }]) {
+    await assert.rejects(persistTargetConfig(config, patch, logger), /secrets belong in the environment/);
+  }
+  assert.equal(await persistTargetConfig(config, { authRequired: true }, logger), true);
+});
+
+test('mieweb init depends on this CLI release and the SDKs its mieweb bindings use', async (t) => {
+  const { readFileSync } = await import('node:fs');
+  const { runInit } = await import('../src/init.mjs');
+  const dir = join(tmp(t), 'app');
+  const log = t.mock.method(console, 'log', () => {});
+  await runInit([dir]);
+  log.mock.restore();
+  const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
+  const cli = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const adapters = JSON.parse(readFileSync(new URL('../../cloud-adapters/package.json', import.meta.url), 'utf8'));
+  assert.equal(pkg.devDependencies['@mieweb/cli'], `^${cli.version}`);
+  assert.equal(pkg.devDependencies['@mieweb/cloud'], `^${cli.version}`);
+  for (const sdk of ['@libsql/client', 'ioredis']) {
+    assert.equal(pkg.dependencies[sdk], adapters.peerDependencies[sdk], sdk);
+  }
+});
