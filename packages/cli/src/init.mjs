@@ -107,17 +107,16 @@ function packageJson(name) {
           // the worker on the Node host harness with the networked adapters.
           start: 'mieweb --target mieweb dev',
         },
-        // Runtime deps of `npm start` on the cloud image: the SDKs behind the
-        // generated `mieweb` bindings (libSQL, Valkey). cloud-adapters only
-        // lists them as optional peers, so the app has to install them.
+        // Runtime dependencies: `npm start` (what the os.mieweb.org cloud image
+        // runs) needs the CLI, the layer, and the SDKs behind the generated
+        // `mieweb` bindings (libSQL, Valkey; cloud-adapters only lists them as
+        // optional peers). All @mieweb packages release together, so they
+        // track this CLI's version.
         dependencies: {
           '@libsql/client': '^0.14.0',
-          ioredis: '^5.4.1',
-        },
-        // All @mieweb packages release together, so pin both to this CLI's version.
-        devDependencies: {
           '@mieweb/cli': `^${CLI_VERSION}`,
           '@mieweb/cloud': `^${CLI_VERSION}`,
+          ioredis: '^5.4.1',
         },
       },
       null,

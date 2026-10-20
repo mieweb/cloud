@@ -144,8 +144,10 @@ test('mieweb init depends on this CLI release and the SDKs its mieweb bindings u
   const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
   const cli = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const adapters = JSON.parse(readFileSync(new URL('../../cloud-adapters/package.json', import.meta.url), 'utf8'));
-  assert.equal(pkg.devDependencies['@mieweb/cli'], `^${cli.version}`);
-  assert.equal(pkg.devDependencies['@mieweb/cloud'], `^${cli.version}`);
+  // Runtime dependencies, not devDependencies: `npm start` runs `mieweb`.
+  assert.equal(pkg.dependencies['@mieweb/cli'], `^${cli.version}`);
+  assert.equal(pkg.dependencies['@mieweb/cloud'], `^${cli.version}`);
+  assert.equal(pkg.devDependencies, undefined);
   for (const sdk of ['@libsql/client', 'ioredis']) {
     assert.equal(pkg.dependencies[sdk], adapters.peerDependencies[sdk], sdk);
   }
