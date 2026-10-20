@@ -7,14 +7,14 @@
  *   wrangler.jsonc          source of truth for bindings (Cloudflare shapes)
  *   mieweb.jsonc            off-Cloudflare driver hints + default target
  *   worker/index.mjs        a normal `export default { fetch }` worker
- *   package.json            wired to @mieweb/cli with dev/deploy scripts
+ *   package.json            wired to @mieweb/cli with dev/deploy/start scripts
  *   .gitignore              ignores .data/ + node_modules
  *
  * Mirrors `wrangler init` / `npm create cloudflare`: it only writes files, then
  * prints next steps. It never installs deps or touches anything outside the
  * target directory.
  */
-import { mkdirSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve, join, basename } from 'node:path';
 
 /**
@@ -88,6 +88,9 @@ function sanitizeName(name) {
   return cleaned || 'mieweb-app';
 }
 
+/** This CLI's version; scaffolds depend on the matching @mieweb release. */
+const CLI_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+
 function packageJson(name) {
   return (
     JSON.stringify(
@@ -100,10 +103,20 @@ function packageJson(name) {
           dev: 'mieweb --target local dev',
           'dev:cf': 'mieweb dev',
           deploy: 'mieweb deploy',
+          // What os.mieweb.org's cloud image runs (app.service → `npm start`):
+          // the worker on the Node host harness with the networked adapters.
+          start: 'mieweb --target mieweb dev',
         },
-        devDependencies: {
-          '@mieweb/cli': '^0.2.0',
-          '@mieweb/cloud': '^0.2.0',
+        // Runtime dependencies: `npm start` (what the os.mieweb.org cloud image
+        // runs) needs the CLI, the layer, and the SDKs behind the generated
+        // `mieweb` bindings (libSQL, Valkey; cloud-adapters only lists them as
+        // optional peers). All @mieweb packages release together, so they
+        // track this CLI's version.
+        dependencies: {
+          '@libsql/client': '^0.14.0',
+          '@mieweb/cli': `^${CLI_VERSION}`,
+          '@mieweb/cloud': `^${CLI_VERSION}`,
+          ioredis: '^5.4.1',
         },
       },
       null,

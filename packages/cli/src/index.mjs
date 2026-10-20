@@ -26,9 +26,10 @@ import { delegateToWrangler } from './cloudflare.mjs';
 import { runHostTarget } from './local.mjs';
 import { runInit } from './init.mjs';
 import { runImagesCommand, runRegistryCommand } from './images.mjs';
-import { PROVIDER_VERBS, resolveProvider, runProviderVerb } from './provider.mjs';
+import { PROVIDER_VERBS, providerImplements, resolveProvider, runProviderVerb } from './provider.mjs';
 
-/** Verbs handled by the deploy-contract provider layer. */
+/** Provider verbs with a legacy implementation to fall back to. */
+const LEGACY_FALLBACK_VERBS = new Set(['dev', 'tail']);
 
 /** Read this CLI's version from its package.json. */
 function miewebVersion() {
@@ -69,7 +70,8 @@ async function main(argv) {
 
   // Version flags: always show the mieweb version first. On cloudflare we then
   // let wrangler print its own version below; other targets show mieweb only.
-  if (args[0] === '--version' || args[0] === '-v' || args[0] === '-V') {
+  const versionFlag = args[0] === '--version' || args[0] === '-v' || args[0] === '-V';
+  if (versionFlag) {
     process.stdout.write(`mieweb ${miewebVersion()}\n`);
   }
 
@@ -80,6 +82,9 @@ async function main(argv) {
   }
 
   const config = loadConfig({ overrideTarget });
+
+  // Only cloudflare has a second version to show (wrangler's, below).
+  if (versionFlag && config.target !== 'cloudflare') return 0;
 
   // Container image plumbing (build once, skopeo copy — container-plan.md M2).
   // `images push` on the cloudflare target delegates to wrangler's managed
@@ -105,7 +110,10 @@ async function main(argv) {
   // PROVIDER_VERBS). Cloudflare resolves to the wrangler reference provider;
   // other targets can name a provider package in mieweb.jsonc
   // (`targets[t].provider`). Everything else (d1 migrations, etc.) and any
-  // target without a provider falls through to the legacy paths below.
+  // target without a provider — or a `dev`/`tail` the provider doesn't
+  // implement (e.g. `dev` on mieweb runs the host harness) — falls through to the
+  // legacy paths below. Other omitted verbs (login/logout/whoami/destroy) stay
+  // with runProviderVerb, which explains what the provider doesn't do.
   if (/** @type {readonly string[]} */ (PROVIDER_VERBS).includes(args[0])) {
     let provider = null;
     try {
@@ -114,7 +122,7 @@ async function main(argv) {
       console.error(`mieweb: ${err?.message ?? err}`);
       return 1;
     }
-    if (provider) {
+    if (provider && (providerImplements(provider, args[0]) || !LEGACY_FALLBACK_VERBS.has(args[0]))) {
       return runProviderVerb(
         /** @type {import('./provider.mjs').ProviderVerb} */ (args[0]),
         provider,
@@ -126,7 +134,9 @@ async function main(argv) {
 
   if (config.target === 'cloudflare') {
     // Reference path for non-provider commands: hand to wrangler untouched.
-    return delegateToWrangler(args, { cwd: config.root });
+    const code = await delegateToWrangler(args, { cwd: config.root });
+    // `--version` already printed mieweb's version; wrangler's is a bonus.
+    return versionFlag ? 0 : code;
   }
 
   // Node "host" targets run the unchanged worker via the host harness. `local`

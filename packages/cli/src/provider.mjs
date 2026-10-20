@@ -3,7 +3,8 @@ import { pathToFileURL } from 'node:url';
 import { resolve, join, isAbsolute } from 'node:path';
 import { createRequire } from 'node:module';
 import { resolve as resolveFrom } from 'import-meta-resolve';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { applyEdits, modify } from 'jsonc-parser';
 
 /**
  * Provider selection + context construction for the mieweb CLI.
@@ -34,15 +35,15 @@ export const PROVIDER_VERBS = /** @type {const} */ (['deploy', 'dev', 'tail', 'l
 /** @typedef {typeof PROVIDER_VERBS[number]} ProviderVerb */
 
 /**
- * Built-in provider mapping. Kept tiny and explicit for the POC: only the
- * reference (cloudflare → wrangler) is wired in-repo. Other targets resolve
- * their provider dynamically from config (below), so opensource-server can ship
- * its provider as a separate package without a change here.
+ * Built-in provider mapping: cloudflare → the wrangler reference provider,
+ * mieweb (os.mieweb.org) → the opensource-server provider. Both are CLI
+ * dependencies. `targets[t].provider` in mieweb.jsonc overrides these.
  *
  * @type {Record<string, string>}
  */
 const BUILTIN_PROVIDERS = {
   cloudflare: '@mieweb/deploy-wrangler',
+  mieweb: '@mieweb/os-cloud-provider',
 };
 
 /**
@@ -191,6 +192,7 @@ export function buildContext(config, argv) {
       error: (m) => process.stderr.write(`[mieweb] ERROR ${m}\n`),
     },
     signal: controller.signal,
+    persistTargetConfig: (patch) => persistTargetConfig(config, patch, context.logger),
   };
 
   const dispose = () => {
@@ -359,4 +361,80 @@ function reportDeploy(result) {
 function unsupported(context, provider, verb) {
   context.logger.error(`provider "${provider.name}" does not implement "${verb}".`);
   return 1;
+}
+
+/**
+ * Whether `provider` implements the CLI verb. `deploy` is mandatory in the
+ * contract; the rest are optional methods. Verbs a provider lacks fall back to
+ * the CLI's legacy path for the target (e.g. `dev`/`tail` on mieweb run the
+ * Node host harness).
+ *
+ * @param {DeployProvider} provider
+ * @param {string} verb
+ * @returns {boolean}
+ */
+export function providerImplements(provider, verb) {
+  return typeof (/** @type {Record<string, unknown>} */ (/** @type {unknown} */ (provider)))[verb] === 'function';
+}
+
+/**
+ * `DeployContext.persistTargetConfig`: write non-secret settings a provider
+ * resolved interactively into `mieweb.jsonc` → `targets[target]`, keeping
+ * comments and formatting. Creates mieweb.jsonc in the project root if absent.
+ *
+ * @param {MiewebConfig} config
+ * @param {Readonly<Record<string, unknown>>} patch
+ * @param {DeployContext['logger']} logger
+ * @returns {Promise<boolean>} whether the file changed
+ */
+export async function persistTargetConfig(config, patch, logger) {
+  const entries = Object.entries(patch ?? {});
+  const secret = secretKeyIn(patch);
+  if (secret) {
+    throw new Error(`refusing to write "${secret}" to mieweb.jsonc: secrets belong in the environment`);
+  }
+  if (entries.length === 0) return false;
+
+  const file = config.configPath && config.configPath.endsWith('mieweb.jsonc')
+    ? config.configPath
+    : join(config.root, 'mieweb.jsonc');
+  const before = existsSync(file) ? readFileSync(file, 'utf8') : '{}\n';
+  const fmt = { formattingOptions: { insertSpaces: true, tabSize: 2, eol: '\n' } };
+  let text = before;
+  for (const [k, v] of entries) {
+    text = applyEdits(text, modify(text, ['targets', config.target, k], v, fmt));
+  }
+  if (text === before) return false;
+  writeFileSync(file, text);
+  logger.info(
+    `Saved ${entries.map(([k, v]) => `targets.${config.target}.${k} = ${JSON.stringify(v)}`).join(', ')} to ${file}`,
+  );
+  return true;
+}
+
+/** Key names that look like credentials (matched anywhere in the name). */
+const SECRET_KEY = /secret|token|passw|credential|api[-_]?key|access[-_]?key|private[-_]?key/i;
+
+/**
+ * The path of the first secret-looking key in `value` (searched recursively,
+ * including arrays), or null. `bindings` counts too: it holds driver config.
+ * @param {unknown} value
+ * @param {string} [path]
+ * @returns {string|null}
+ */
+function secretKeyIn(value, path = '') {
+  if (Array.isArray(value)) {
+    for (const [i, v] of value.entries()) {
+      const hit = secretKeyIn(v, `${path}[${i}]`);
+      if (hit) return hit;
+    }
+  } else if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) {
+      const p = path ? `${path}.${k}` : k;
+      if (k === 'bindings' || SECRET_KEY.test(k)) return p;
+      const hit = secretKeyIn(v, p);
+      if (hit) return hit;
+    }
+  }
+  return null;
 }
