@@ -12,6 +12,12 @@
 # file as a trusted publisher on npmjs.com (Package → Settings → Trusted
 # Publisher: owner `mieweb`, repo `cloud`, workflow `release.yml`).
 # npm >= 11.5 is required for OIDC publish; setup-node's bundled npm may lag.
+#
+# A NEW package has to exist on npmjs before a trusted publisher can be added.
+# Bootstrap it from its package directory with `pnpm publish --tag bootstrap`
+# (a throwaway version like 0.0.0-stage), never `npm publish`: npm doesn't
+# rewrite workspace:* dependencies (scripts/require-pnpm-publish.mjs refuses it).
+# Then `npm trust github <pkg> --repo mieweb/cloud --file release.yml --allow-publish`.
 name: Release
 
 on:

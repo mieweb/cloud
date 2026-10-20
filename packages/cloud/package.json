@@ -28,5 +28,8 @@
   },
   "files": [
     "src"
-  ]
+  ],
+  "scripts": {
+    "prepublishOnly": "node ../../scripts/require-pnpm-publish.mjs"
+  }
 }

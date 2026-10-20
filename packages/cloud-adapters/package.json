@@ -25,17 +25,18 @@
   "scripts": {
     "test": "node --test",
     "infra:up": "docker compose up -d --wait",
-    "infra:down": "docker compose down -v"
+    "infra:down": "docker compose down -v",
+    "prepublishOnly": "node ../../scripts/require-pnpm-publish.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.10"
   },
   "peerDependencies": {
-    "better-sqlite3": "^13.0.0",
-    "sqlite-vec": "^0.1.6",
-    "@libsql/client": "^0.14.0",
     "@aws-sdk/client-s3": "^3.600.0",
-    "ioredis": "^5.4.1"
+    "@libsql/client": "^0.14.0",
+    "better-sqlite3": "^13.0.0",
+    "ioredis": "^5.4.1",
+    "sqlite-vec": "^0.1.6"
   },
   "peerDependenciesMeta": {
     "better-sqlite3": {
@@ -55,11 +56,11 @@
     }
   },
   "devDependencies": {
-    "better-sqlite3": "^13.0.0",
-    "sqlite-vec": "^0.1.6",
-    "@libsql/client": "^0.14.0",
     "@aws-sdk/client-s3": "^3.600.0",
-    "ioredis": "^5.4.1"
+    "@libsql/client": "^0.14.0",
+    "better-sqlite3": "^13.0.0",
+    "ioredis": "^5.4.1",
+    "sqlite-vec": "^0.1.6"
   },
   "files": [
     "src",

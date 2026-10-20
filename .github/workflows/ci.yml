@@ -35,6 +35,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm -r test
+      # Published tarballs must not contain workspace: ranges (see scripts/check-packs.mjs).
+      - run: pnpm check:packs
 
   # Cross-target conformance against real infrastructure. The runner brings up
   # the docker compose stack (libSQL + MinIO + Valkey) itself and tears it down.

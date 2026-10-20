@@ -19,7 +19,8 @@
     ".": "./src/index.mjs"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "prepublishOnly": "node ../../scripts/require-pnpm-publish.mjs"
   },
   "dependencies": {
     "@mieweb/deploy-contract": "workspace:*",
